@@ -76,8 +76,18 @@ Needs Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 **The easy way:** on Windows, double-click `prscreen-gui.bat`; anywhere else, run
 `uv run prscreen gui`. A page opens in your browser. Paste a diff, or choose a repository and a
 range like `main...HEAD`, then press **Scan**. You get colour-coded findings with the evidence line,
-why it matters and when it's harmless. **Try an example** loads sample risky changes, and the
-**Rules** tab lists every rule.
+why it matters and when it's harmless. The **Rules** tab lists every rule.
+
+**Try a real incident** loads short, harmless recreations of documented attacks and leaks, each
+with links to the news reports and advisories:
+
+- **Toyota** T-Connect key leak (2022)
+- **event-stream** (2018), **ua-parser-js** (2021) and **crossenv** (2017) on npm
+- **ctx** on PyPI (2022) and the **PyTorch** nightly dependency confusion (2022)
+- **Codecov** (2021), **Ultralytics** (2024) and **tj-actions/changed-files** (2025) in CI
+- **Trojan Source** (2021 research)
+
+It also includes one unmodified real pull request that prscreen stays quiet on.
 
 The page runs only on your computer. It listens on 127.0.0.1, answers only requests carrying a
 one-time token from the link it prints, rejects other host names, and shows pull request text as

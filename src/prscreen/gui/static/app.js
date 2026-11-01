@@ -189,13 +189,39 @@ $("copy-md").addEventListener("click", async () => {
 async function loadSamples() {
   const { samples } = await api("/api/samples");
   const select = $("sample");
-  samples.forEach((sample, index) => select.append(new Option(sample.title, String(index))));
+  samples.forEach((sample, index) => select.append(new Option(`${sample.year} · ${sample.title}`, String(index))));
   select.addEventListener("change", () => {
     if (select.value === "") return;
+    const sample = samples[Number(select.value)];
     document.querySelector('.seg[data-mode="diff"]').click();
-    $("diff").value = samples[Number(select.value)].diff;
+    $("diff").value = sample.diff;
     select.value = "";
+    showIncident(sample);
     runScan();
+  });
+  // Editing the input or switching mode means the incident card no longer describes it.
+  $("diff").addEventListener("input", () => showIncident(null));
+  document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", () => {
+    if (seg.dataset.mode === "git") showIncident(null);
+  }));
+}
+
+function showIncident(sample) {
+  $("incident").hidden = !sample;
+  if (!sample) return;
+  $("incident-year").textContent = sample.year;
+  $("incident-title").textContent = sample.title;
+  $("incident-summary").textContent = sample.summary;
+  $("incident-recreation").textContent = `In this example: ${sample.recreation}`;
+  const links = $("incident-sources");
+  links.replaceChildren();
+  sample.sources.forEach((source) => {
+    if (!/^https:\/\//.test(source.url)) return; // only ever link to https pages
+    const link = el("a", "", source.name);
+    link.href = source.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    links.append(link);
   });
 }
 

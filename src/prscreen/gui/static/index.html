@@ -36,7 +36,7 @@
             <button class="seg active" data-mode="diff" role="radio" aria-checked="true">Paste a diff</button>
             <button class="seg" data-mode="git" role="radio" aria-checked="false">Git repository</button>
           </div>
-          <label class="inline">Try an example
+          <label class="inline">Try a real incident
             <select id="sample"><option value="">Choose…</option></select>
           </label>
         </div>
@@ -69,6 +69,16 @@
           <button id="scan" class="primary">Scan</button>
         </div>
       </div>
+
+      <aside id="incident" class="incident" hidden>
+        <div class="incident-head">
+          <span class="incident-year" id="incident-year"></span>
+          <strong id="incident-title"></strong>
+        </div>
+        <p id="incident-summary"></p>
+        <p class="muted" id="incident-recreation"></p>
+        <div class="incident-sources"><span class="muted">Sources:</span> <span id="incident-sources"></span></div>
+      </aside>
 
       <div id="error" class="error" role="alert" hidden></div>
 
@@ -107,6 +117,12 @@
         medium or high finding, so it rarely cries wolf. On 65 labeled examples it caught 95% of what
         it should. It is a pattern tool, so a carefully written logic change can still get past it; the
         documentation lists those limits openly.</p>
+      <h2>The examples</h2>
+      <p>Every entry under <em>Try a real incident</em> is a documented real-world case, such as
+        event-stream, ua-parser-js, Codecov, the PyTorch nightly compromise, Ultralytics, tj-actions and
+        Toyota's leaked key, with links to the news reports and advisories. The code is a short, harmless
+        recreation of each incident's key mechanism, not the attackers' code. One entry is an unmodified
+        real pull request that prscreen should stay quiet on.</p>
       <h2>Severity</h2>
       <ul>
         <li><span class="sev high">high</span> very likely to matter: look before merging.</li>

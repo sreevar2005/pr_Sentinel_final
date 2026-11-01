@@ -157,6 +157,20 @@ details p { margin: 6px 0 0; }
 .ai-note { font-size: 13px; color: var(--muted); }
 .advisory { color: var(--muted); font-size: 13px; text-align: center; }
 
+.incident {
+  background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.incident p { margin: 0; }
+.incident-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.incident-year {
+  font-size: 12px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent);
+  border-radius: 6px; padding: 0 6px;
+}
+.incident-sources { font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+#incident-sources { display: inline-flex; flex-wrap: wrap; gap: 4px 16px; }
+.incident-sources a { color: var(--accent); }
+
 .clean-card {
   background: var(--ok-bg); border: 1px solid var(--ok); border-radius: var(--radius); padding: 18px; text-align: center;
 }

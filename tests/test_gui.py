@@ -91,18 +91,28 @@ def test_rules_endpoint(server):
     assert all(r["rationale"] and r["benign"] for r in rules)
 
 
-def test_every_sample_behaves_as_its_title_says(server):
+def test_every_example_triggers_the_rules_it_claims(server):
     response, data = request(server, "GET", "/api/samples")
     samples = json.loads(data)["samples"]
     assert response.status == 200 and len(samples) == len(SAMPLES)
     for sample in samples:
         status, body = scan(server, mode="diff", diff=sample["diff"])
         assert status == 200, sample["title"]
-        loud = [f for f in body["result"]["findings"] if f["severity"] in ("medium", "high")]
-        if "quiet" in sample["title"]:
-            assert loud == [], sample["title"]
+        found = {f["rule_id"] for f in body["result"]["findings"]}
+        if sample["expect"]:
+            assert set(sample["expect"]) <= found, sample["title"]
         else:
-            assert loud, sample["title"]
+            assert found == set(), f"{sample['title']} should stay quiet"
+
+
+def test_every_example_is_a_real_case_with_sources():
+    assert any(not s["expect"] for s in SAMPLES), "keep one real pull request that stays quiet"
+    for sample in SAMPLES:
+        assert re.fullmatch(r"(19|20)\d\d", sample["year"]), sample["title"]
+        assert sample["summary"] and sample["recreation"], sample["title"]
+        assert sample["sources"], f"{sample['title']} needs at least one source"
+        for source in sample["sources"]:
+            assert source["name"] and source["url"].startswith("https://"), source
 
 
 def test_scan_returns_findings_markdown_and_respects_min_severity(server):
