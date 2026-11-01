@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from prscreen import __version__
+from prscreen import __version__, formats
 from prscreen.engine import ScanResult
 from prscreen.models import Finding
 from prscreen.sanitize import visible
@@ -20,18 +20,19 @@ def render(result: ScanResult) -> str:
         "schema_version": SCHEMA_VERSION,
         "complete": result.complete,
         "files_scanned": result.files_scanned,
-        "findings": [_finding(f) for f in result.findings],
+        "findings": [_finding(f, formats.ai_note(result, f)) for f in result.findings],
         "skipped": [{"path": visible(path), "reason": reason} for path, reason in result.skipped],
         "capped": [
             {"rule_id": rule_id, "path": visible(path), "dropped": n}
             for (rule_id, path), n in result.capped.items()
         ],
         "errors": [visible(error) for error in result.errors],
+        "ai": _ai(result),
     }
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
-def _finding(f: Finding) -> dict[str, Any]:
+def _finding(f: Finding, note: str | None) -> dict[str, Any]:
     return {
         "rule_id": f.rule.id,
         "title": f.rule.title,
@@ -43,4 +44,20 @@ def _finding(f: Finding) -> dict[str, Any]:
         "evidence": visible(f.evidence),
         "detail": visible(f.detail),
         "fingerprint": f.fingerprint,
+        "ai_note": visible(note) if note else None,
+    }
+
+
+def _ai(result: ScanResult) -> dict[str, Any] | None:
+    ai = result.ai
+    if ai is None:
+        return None
+    return {
+        "provider": ai.provider,
+        "model": ai.model,
+        "status": visible(ai.status),
+        "notes": len(ai.notes),
+        "questions": ai.questions,
+        "rejected": [visible(reason) for reason in ai.rejected],
+        "truncated": ai.truncated,
     }

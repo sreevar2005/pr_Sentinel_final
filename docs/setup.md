@@ -88,6 +88,49 @@ the real protection is repository settings:
 3. In an organisation, a ruleset can **require the workflow** from a central repository that
    pull requests cannot edit.
 
+## Optional: AI review in CI
+
+The action is rules-only on purpose: no secrets, nothing installed, safe on forks. If you want the
+optional AI review ([ai.md](ai.md)) as well, add a separate job that runs only for pull requests
+from branches of your own repository, because fork PRs never receive secrets:
+
+```yaml
+  ai-review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: AI review (advisory)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}   # passed as data, never pasted into the script
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 -m venv /tmp/prscreen
+          /tmp/prscreen/bin/pip install --quiet "prscreen[claude] @ git+https://github.com/sreevar2005/prscreen@<commit-sha>"
+          printf '%s' "$PR_BODY" > /tmp/pr-body.md
+          /tmp/prscreen/bin/prscreen scan --git "$BASE...$HEAD" --ai claude \
+            --pr-title "$PR_TITLE" --pr-body-file /tmp/pr-body.md \
+            --format markdown --output /tmp/report.md
+          cat /tmp/report.md >> "$GITHUB_STEP_SUMMARY"
+```
+
+Two cautions:
+
+- **The diff is sent to Anthropic.** prscreen redacts the secrets it recognises first. Use
+  `--ai ollama` on a self-hosted runner if code must not leave your infrastructure.
+- **A `pull_request` run uses the PR's own copy of this workflow.** Anyone who can push a branch
+  can edit the job and read `ANTHROPIC_API_KEY`. Use a key with a low spending limit, dedicated to
+  this job.
+
 ## 6. Run it locally
 
 ```bash

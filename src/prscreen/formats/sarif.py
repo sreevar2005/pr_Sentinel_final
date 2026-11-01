@@ -6,7 +6,7 @@ import json
 from typing import Any
 from urllib.parse import quote
 
-from prscreen import __version__
+from prscreen import __version__, formats
 from prscreen.engine import ScanResult
 from prscreen.models import Finding, Rule, Severity
 from prscreen.sanitize import visible
@@ -27,7 +27,7 @@ def render(result: ScanResult) -> str:
                 "rules": [_rule(rule) for rule in result.rules],
             }
         },
-        "results": [_result(f, rule_index) for f in result.findings],
+        "results": [_result(f, rule_index, formats.ai_note(result, f)) for f in result.findings],
         "invocations": [
             {
                 "executionSuccessful": result.complete,
@@ -56,7 +56,7 @@ def _rule(rule: Rule) -> dict[str, Any]:
     }
 
 
-def _result(f: Finding, rule_index: dict[str, int]) -> dict[str, Any]:
+def _result(f: Finding, rule_index: dict[str, int], note: str | None = None) -> dict[str, Any]:
     location: dict[str, Any] = {"artifactLocation": {"uri": quote(f.path), "uriBaseId": "%SRCROOT%"}}
     if f.line:
         location["region"] = {"startLine": f.line, "snippet": {"text": visible(f.evidence)}}
@@ -68,5 +68,6 @@ def _result(f: Finding, rule_index: dict[str, int]) -> dict[str, Any]:
         "message": {"text": text},
         "locations": [{"physicalLocation": location}],
         "partialFingerprints": {"prscreen/v1": f.fingerprint},
-        "properties": {"confidence": f.confidence.label},
+        "properties": {"confidence": f.confidence.label}
+        | ({"aiNote": visible(note) + " (AI-generated, unverified)"} if note else {}),
     }

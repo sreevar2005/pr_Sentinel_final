@@ -7,10 +7,10 @@ A test fails if this file is out of date, so the numbers always match the curren
 
 | Measure | Result |
 | --- | --- |
-| Labeled cases | 63 (38 risky, 25 harmless look-alikes) |
-| Expected findings caught (recall) | 62 / 65 (95.4%) |
-| Findings that were expected (precision on labeled cases) | 62 / 63 (98.4%) |
-| Harmless look-alikes with no false alarm | 24 / 25 (96.0%) |
+| Labeled cases | 65 (39 risky, 26 harmless look-alikes) |
+| Expected findings caught (recall) | 63 / 66 (95.5%) |
+| Findings that were expected (precision on labeled cases) | 63 / 64 (98.4%) |
+| Harmless look-alikes with no false alarm | 25 / 26 (96.2%) |
 | Documented misses (known limitations) | 3 |
 | Real merged PRs scanned | 95 from 10 projects, 8,713 changed lines |
 | Real PRs with a medium or high finding | 0 / 95 (0.0%) |
@@ -71,6 +71,7 @@ Caught, missed and false alarms come from the labeled cases; the last two column
 | OBF005 | Decodes data and runs it as code | 4 | 1 | 0 | 0 | 0 |
 | OBF006 | Very long line in hand\-written source | 0 | 0 | 0 | 1 | 0 |
 | OBF007 | Compiled binary or archive added | 1 | 0 | 0 | 0 | 0 |
+| OBF008 | Text addressed to AI reviewers or scanners | 1 | 0 | 0 | 0 | 0 |
 | PATH001 | CI or automation configuration changed | 0 | 0 | 0 | 21 | 0 |
 | PATH002 | Code ownership or review rules changed | 1 | 0 | 0 | 0 | 0 |
 | PATH003 | Config that runs commands on developer machines | 1 | 0 | 0 | 5 | 0 |
@@ -109,6 +110,7 @@ Attacks in the corpus that the rules do not catch:
 | Numerical code using Greek letters and a Russian UI string | benign | synthetic look\-alike of OBF003 | ✅ quiet |
 | Binary images and fonts added | benign | synthetic look\-alike of OBF007 | ✅ quiet |
 | README install instructions with curl \| sh, and a script that verifies a checksum | benign | synthetic look\-alike of EXE001 | ✅ quiet |
+| An LLM application's own system prompt and guardrail wording | benign | synthetic look\-alike of OBF008 | ✅ quiet |
 | Local, private and documentation addresses, plus well\-known URLs | benign | synthetic look\-alike of NET001 and NET003 | ✅ quiet |
 | Auth decorator moved to a different view in the same file | benign | synthetic look\-alike of CFG005 | ✅ quiet |
 | package\.json scripts: husky prepare, tests and a version bump | benign | synthetic look\-alike of EXE005 and DEP001 | ✅ quiet |
@@ -148,6 +150,7 @@ Attacks in the corpus that the rules do not catch:
 | Endpoint unpickles the request body | risky | synthetic | ✅ 1 expected |
 | Build script launches PowerShell with an encoded command | risky | synthetic; MITRE ATT&amp;CK T1027 / T1059\.001 | ✅ 1 expected |
 | Deploy SSH private key added to the repository | risky | synthetic | ✅ 2 expected |
+| Comment tells AI reviewers to skip a file that adds a hardcoded admin bypass | risky | synthetic; prompt injection aimed at AI code reviewers | ✅ 1 expected |
 | Package ships a \.pth file that runs code on every Python start | risky | synthetic; persistence technique used by several malicious PyPI packages | ✅ 2 expected |
 | pull\_request\_target workflow builds the PR's own code with secrets available | risky | recreation of the 'pwn request' pattern \(GitHub Security Lab, 2021\) | ✅ 2 expected |
 | Refactor quietly drops the login and permission checks from an export view | risky | synthetic | ✅ 2 expected |

@@ -5,11 +5,15 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from typing import TYPE_CHECKING
 
 from prscreen.detectors import MAX_SCAN_LINE_CHARS, Detector, all_rules, default_detectors
 from prscreen.detectors.secrets import redact
 from prscreen.diff import Diff
 from prscreen.models import Finding, Rule
+
+if TYPE_CHECKING:
+    from prscreen.ai import AIReport
 
 # A PR padded with thousands of copies of one pattern should not bury everything else in noise.
 MAX_FINDINGS_PER_RULE_PER_FILE = 20
@@ -26,6 +30,8 @@ class ScanResult:
     """(rule id, path) -> findings dropped by the per-file cap."""
     errors: list[str] = field(default_factory=list)
     """Detectors that crashed. Their findings are missing, so the result is incomplete."""
+    ai: AIReport | None = None
+    """Set when the optional AI review ran (or was attempted)."""
 
     @property
     def complete(self) -> bool:

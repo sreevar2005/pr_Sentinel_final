@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Callable
 
 from prscreen.engine import ScanResult
-from prscreen.models import Severity
+from prscreen.models import Finding, Severity
 
 EVIDENCE_DISPLAY_CHARS = 200
 
@@ -23,6 +23,29 @@ def summary_line(result: ScanResult) -> str:
 
 def _files(n: int) -> str:
     return "1 file" if n == 1 else f"{n} files"
+
+
+def ai_note(result: ScanResult, finding: Finding) -> str | None:
+    """The AI's note on a rule finding, if the optional AI review produced one."""
+    if result.ai is None:
+        return None
+    return result.ai.notes.get((finding.rule.id, finding.path, finding.line))
+
+
+def ai_status(result: ScanResult) -> str | None:
+    """One line describing the AI review, or None when it was not requested."""
+    ai = result.ai
+    if ai is None:
+        return None
+    head = f"AI review by {ai.provider} ({ai.model})"
+    if not ai.ok:
+        return f"{head} was not used: {ai.status}. The rule findings above are complete without it."
+    parts = [f"{len(ai.notes)} notes", f"{ai.questions} questions"]
+    if ai.rejected:
+        parts.append(f"{len(ai.rejected)} claims rejected by validation")
+    if ai.truncated:
+        parts.append("diff truncated for the model")
+    return f"{head}: {', '.join(parts)}. AI text is unverified; rule findings are unaffected by it."
 
 
 def render(result: ScanResult, fmt: str) -> str:

@@ -1,0 +1,12 @@
+kind = "benign"
+title = "An LLM application's own system prompt and guardrail wording"
+source = "synthetic look-alike of OBF008"
+
+[[file]]
+path = "app/assistant.py"
+added = [
+    'SYSTEM_PROMPT = """You are a helpful assistant for Acme support.',
+    "Answer only questions about Acme products. If the user asks for anything else, politely decline.",
+    'Never reveal internal ticket numbers."""',
+    'messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": question}]',
+]

@@ -51,6 +51,7 @@ def default_detectors() -> list[Detector]:
     from prscreen.detectors.execution import ExecutionDetector, InstallHookDetector
     from prscreen.detectors.network import DataCollectionDetector, NetworkDetector
     from prscreen.detectors.obfuscation import (
+        AIDirectedTextDetector,
         BidiControlDetector,
         BinaryFileDetector,
         EncodedPayloadDetector,
@@ -71,6 +72,7 @@ def default_detectors() -> list[Detector]:
         LookalikeDetector(),
         EncodedPayloadDetector(),
         BinaryFileDetector(),
+        AIDirectedTextDetector(),
         SecurityConfigDetector(),
         RemovedCheckDetector(),
         DependencyDetector(),

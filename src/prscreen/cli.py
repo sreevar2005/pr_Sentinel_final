@@ -16,8 +16,8 @@ from typing import BinaryIO
 
 from prscreen import __version__
 from prscreen.detectors import all_rules
-from prscreen.diff import DiffParseError, parse_diff
-from prscreen.engine import scan
+from prscreen.diff import Diff, DiffParseError, parse_diff
+from prscreen.engine import ScanResult, scan
 from prscreen.formats import FORMATS, render
 from prscreen.formats.markdown import rules_markdown
 from prscreen.gitdiff import GitError, git_diff
@@ -63,6 +63,17 @@ def _parser() -> argparse.ArgumentParser:
     scan_cmd.add_argument(
         "--min-severity", choices=("low", "medium", "high"), default="low", help="hide less severe findings"
     )
+    ai = scan_cmd.add_argument_group(
+        "optional AI review", "adds notes and questions after the rules run; it can never remove a finding"
+    )
+    ai.add_argument("--ai", choices=("claude", "ollama"), help="model provider (default: rules only)")
+    ai.add_argument(
+        "--ai-model", metavar="NAME", help="model name (default: claude-opus-5-5 / qwen2.5-coder:7b)"
+    )
+    ai.add_argument(
+        "--pr-title", metavar="TEXT", default="", help="pull request title, given to the model as data"
+    )
+    ai.add_argument("--pr-body-file", metavar="PATH", help="file with the pull request description")
     scan_cmd.set_defaults(handler=_scan)
 
     action = commands.add_parser(
@@ -119,6 +130,8 @@ def _scan(args: argparse.Namespace) -> int:
     except DiffParseError as exc:
         raise UsageError(f"could not parse diff: {exc}") from exc
     result = scan(diff)
+    if args.ai:
+        result = _ai_review(args, diff, result)
     floor = Severity[args.min_severity.upper()]
     result.findings = [f for f in result.findings if f.severity >= floor]
     report = render(result, args.format)
@@ -168,8 +181,28 @@ def _write_stdout(report: str, fmt: str) -> None:
     sys.stdout.write(report)
 
 
+def _ai_review(args: argparse.Namespace, diff: Diff, result: ScanResult) -> ScanResult:
+    from prscreen.ai import AIReport, review
+    from prscreen.ai.providers import ProviderError, get_provider
+
+    body = ""
+    if args.pr_body_file:
+        try:
+            body = Path(args.pr_body_file).read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise UsageError(f"cannot read {args.pr_body_file}: {exc.strerror}") from exc
+    try:
+        provider = get_provider(args.ai, args.ai_model)
+    except ProviderError as exc:
+        result.ai = AIReport(args.ai, args.ai_model or "default", f"failed: {exc}")
+        return result
+    return review(result, diff, provider, args.pr_title, body)
+
+
 def _explain(args: argparse.Namespace) -> int:
-    rules = all_rules()
+    from prscreen.ai import AI_QUESTION
+
+    rules = [*all_rules(), AI_QUESTION]
     if args.markdown:
         sys.stdout.write(rules_markdown(rules))
         return EXIT_OK

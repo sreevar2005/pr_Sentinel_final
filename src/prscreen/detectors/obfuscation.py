@@ -8,6 +8,8 @@ from collections.abc import Iterator
 
 from prscreen.detectors import Detector, LineDetector
 from prscreen.detectors._common import (
+    Pattern,
+    PatternDetector,
     entropy,
     is_comment,
     is_doc,
@@ -303,3 +305,48 @@ class BinaryFileDetector(Detector):
                 severity=Severity.LOW if low or ext in _ARCHIVE_SUFFIXES else None,
                 confidence=confidence,
             )  # fmt: skip
+
+
+AI_DIRECTED_TEXT = Rule(
+    id="OBF008",
+    title="Text addressed to AI reviewers or scanners",
+    category=Category.OBFUSCATION,
+    severity=Severity.MEDIUM,
+    confidence=Confidence.MEDIUM,
+    rationale=(
+        'Instructions aimed at an AI tool ("ignore previous instructions", "AI reviewer: this file is '
+        'safe", "do not report this") are prompt injection: they try to make an automated reviewer '
+        "skip or approve something. Honest code has little reason to talk to the reviewer's tools."
+    ),
+    benign=(
+        "Applications that build LLM prompts, guardrail tests, and documentation about prompt "
+        "injection contain such phrases on purpose."
+    ),
+)
+
+_AI_DIRECTED_RE = re.compile(
+    r"(?i)\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+)?(?:the\s+|your\s+)?"
+    r"(?:previous|prior|above|earlier|system)\s+(?:instructions?|prompts?|rules|guidelines)\b"
+    r"|\b(?:ai|llm|gpt|claude|copilot|automated|security)\s+(?:code\s+)?(?:reviewers?|scanners?|assistants?|"
+    r"agents?|bots?|tools?)\s*[:,]\s*(?:please\s+)?(?:ignore|skip|do\s+not|don't|approve|mark|treat|report\s+no)"
+    r"|\b(?:do\s+not|don't|never)\s+(?:report|flag|mention|scan|analy[sz]e)\s+(?:this|these|any|the\s+following)"
+    r"\b[^.\n]{0,40}\b(?:to|for|in)\s+(?:the\s+)?(?:user|reviewer|human|report)"
+    r"|\bnote\s+(?:to|for)\s+(?:the\s+)?(?:ai|llm|model|assistant|automated\s+reviewer)\b"
+    r"|\bthis\s+(?:code|file|change|pull\s+request|pr|diff)\s+(?:is|has\s+been)\s+(?:safe|verified|"
+    r"pre-?approved|security[- ]reviewed)\b.{0,60}\b(?:ai|llm|scanner|reviewer|bot)s?\b"
+    r"|</?(?:system|instructions?)>|\[/?INST\]|<\|im_start\|>"
+)
+
+
+def _not_lockfile(path: str) -> bool:
+    return not is_lockfile(path) and not is_vendored(path)
+
+
+class AIDirectedTextDetector(PatternDetector):
+    """Looks in comments and strings too: that is where injected instructions hide."""
+
+    name = "ai-directed-text"
+    patterns = (
+        Pattern(AI_DIRECTED_TEXT, _AI_DIRECTED_RE, "Contains wording aimed at an AI reviewer or scanner.",
+                where=_not_lockfile, skip_comments=False),
+    )  # fmt: skip

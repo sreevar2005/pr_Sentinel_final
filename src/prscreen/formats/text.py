@@ -22,6 +22,8 @@ def render(result: ScanResult) -> str:
             out.extend(_wrap("detail", visible(f.detail)))
         out.extend(_wrap("why", f.rule.rationale))
         out.extend(_wrap("benign if", f.rule.benign))
+        if note := formats.ai_note(result, f):
+            out.extend(_wrap("ai note", f"{visible(note)} (AI-generated, unverified)"))
         out.append(f"{_INDENT}confidence: {f.confidence.label}")
         out.append("")
     out.extend(_notes(result))
@@ -32,7 +34,9 @@ def render(result: ScanResult) -> str:
 
 def _wrap(label: str, body: str) -> list[str]:
     head = f"{_INDENT}{label + ':':<12}"
-    return textwrap.wrap(body, _WIDTH, initial_indent=head, subsequent_indent=" " * len(head)) or [head]
+    return textwrap.wrap(
+        body, _WIDTH, initial_indent=head, subsequent_indent=" " * len(head), break_on_hyphens=False
+    ) or [head]
 
 
 def _notes(result: ScanResult) -> list[str]:
@@ -42,4 +46,8 @@ def _notes(result: ScanResult) -> list[str]:
         for (rule_id, path), n in result.capped.items()
     ]
     notes += [f"ERROR {visible(error)} (results are incomplete)" for error in result.errors]
+    if status := formats.ai_status(result):
+        notes.append(visible(status))
+        if result.ai is not None:
+            notes += [f"  rejected {visible(reason)}" for reason in result.ai.rejected]
     return [*notes, ""] if notes else []

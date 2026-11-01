@@ -45,7 +45,7 @@ def render(result: ScanResult) -> str:
         out += [_row(f) for f in result.findings]
         out.append("")
         for f in result.findings[:MAX_DETAILED]:
-            out += _details(f)
+            out += _details(f, formats.ai_note(result, f))
         hidden = len(result.findings) - MAX_DETAILED
         if hidden > 0:
             out += [f"_{hidden} more findings are listed in the table only._", ""]
@@ -63,7 +63,7 @@ def _row(f: Finding) -> str:
     )
 
 
-def _details(f: Finding) -> list[str]:
+def _details(f: Finding, note: str | None = None) -> list[str]:
     lines = [
         f"### {_ICON[f.severity]} {f.rule.id} · {escape(f.rule.title)}",
         "",
@@ -76,6 +76,8 @@ def _details(f: Finding) -> list[str]:
         lines += [escape(f.detail), ""]
     lines += [f"**Why it matters:** {escape(f.rule.rationale)}", ""]
     lines += [f"**Could be harmless if:** {escape(f.rule.benign)}", ""]
+    if note:
+        lines += [f"**AI note (unverified):** {escape(note)}", ""]
     return lines
 
 
@@ -116,4 +118,8 @@ def _notes(result: ScanResult) -> list[str]:
         for (rule_id, path), n in result.capped.items()
     ]
     notes += [f"- ⚠️ {escape(error)}. **Results are incomplete.**" for error in result.errors]
+    if status := formats.ai_status(result):
+        notes.append(f"- {escape(status)}")
+        if result.ai is not None:
+            notes += [f"  - rejected {escape(reason)}" for reason in result.ai.rejected]
     return ["### Notes", "", *notes, ""] if notes else []

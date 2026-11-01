@@ -44,6 +44,7 @@ class Category(StrEnum):
     DEPENDENCIES = "dependencies"
     SECURITY_CONFIG = "security-config"
     SENSITIVE_PATHS = "sensitive-paths"
+    AI_REVIEW = "ai-review"
 
 
 @dataclass(frozen=True)

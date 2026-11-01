@@ -40,6 +40,7 @@ can be raised or lowered by context (for example, matches in test files drop one
 | [OBF005](#obf005) | obfuscation | high | high | Decodes data and runs it as code |
 | [OBF006](#obf006) | obfuscation | low | medium | Very long line in hand-written source |
 | [OBF007](#obf007) | obfuscation | medium | high | Compiled binary or archive added |
+| [OBF008](#obf008) | obfuscation | medium | medium | Text addressed to AI reviewers or scanners |
 | [PATH001](#path001) | sensitive-paths | low | high | CI or automation configuration changed |
 | [PATH002](#path002) | sensitive-paths | medium | high | Code ownership or review rules changed |
 | [PATH003](#path003) | sensitive-paths | low | medium | Config that runs commands on developer machines |
@@ -49,6 +50,7 @@ can be raised or lowered by context (for example, matches in test files drop one
 | [SEC003](#sec003) | secrets | medium | medium | Hardcoded password or secret |
 | [SEC004](#sec004) | secrets | medium | medium | Password embedded in a URL |
 | [SEC005](#sec005) | secrets | medium | medium | File that usually holds secrets |
+| [AI001](#ai001) | ai-review | low | low | Question from the AI reviewer |
 
 ## CFG001
 
@@ -330,6 +332,14 @@ Executables, libraries, bytecode and archives cannot be reviewed in a pull reque
 
 _Could be harmless if:_ Vendored tools, test fixtures or release assets; ideally they are built in CI instead.
 
+## OBF008
+
+**Text addressed to AI reviewers or scanners**
+
+Instructions aimed at an AI tool ("ignore previous instructions", "AI reviewer: this file is safe", "do not report this") are prompt injection: they try to make an automated reviewer skip or approve something. Honest code has little reason to talk to the reviewer's tools.
+
+_Could be harmless if:_ Applications that build LLM prompts, guardrail tests, and documentation about prompt injection contain such phrases on purpose.
+
 ## PATH001
 
 **CI or automation configuration changed**
@@ -401,3 +411,11 @@ _Could be harmless if:_ Connection strings for local databases in development or
 Files such as .env, private key files, keystores and Terraform state usually contain credentials and are normally kept out of version control.
 
 _Could be harmless if:_ Sample files with dummy values, public certificates (.pem can be either) and test keystores are sometimes committed on purpose.
+
+## AI001
+
+**Question from the AI reviewer**
+
+Only with --ai. A language model read the diff and asked about this added line. The line and quote were checked against the diff; the reasoning was not. Treat it as a prompt to look, never as evidence on its own.
+
+_Could be harmless if:_ Models raise plausible-sounding concerns about ordinary code; many questions have simple answers.

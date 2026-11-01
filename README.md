@@ -5,9 +5,10 @@ human reviewer. It looks for things like leaked secrets, unexpected network call
 code, dangerous shell commands, weakened security settings and CI changes. It only reports:
 it never approves, rejects or edits a pull request, and it never calls code or people malicious.
 
-> **Status: stage 4 of 6.** 44 rules in 8 categories, measured on 63 labeled cases and 95 real
+> **Status: stage 5 of 6.** 45 rules in 8 categories, measured on 65 labeled cases and 95 real
 > merged pull requests ([results](#evaluation)), packaged as a GitHub Action that needs only a
-> read-only token ([setup](docs/setup.md), [threat model](docs/threat-model.md)). See
+> read-only token ([setup](docs/setup.md), [threat model](docs/threat-model.md)), with an optional
+> AI reviewer that can add questions but never remove a finding ([AI design](docs/ai.md)). See
 > [Roadmap](#roadmap).
 
 ## Use it on GitHub
@@ -41,7 +42,7 @@ PR from simply deleting the check.
 | Execution | EXE001–006 | `curl … \| sh`, `eval`, `shell=True`, `pickle.loads`, npm install hooks, `.pth` files |
 | CI | CI001–007 | `pull_request_target` with PR checkout, `${{ }}` script injection, unpinned actions |
 | Network and data | NET001–005 | raw public IPs, webhook and paste sites, new hosts that receive data, env dumps |
-| Obfuscation | OBF001–007 | Trojan Source, invisible characters, homoglyphs, decode-and-exec, binaries |
+| Obfuscation | OBF001–008 | Trojan Source, invisible characters, homoglyphs, decode-and-exec, binaries, prompt injection |
 | Security config | CFG001–005 | TLS verification off, wildcard CORS, CSRF or debug toggles, removed auth checks |
 | Dependencies | DEP001–005 | new packages, one-typo names, extra indexes, lockfile-only edits, odd registries |
 | Sensitive paths | PATH001–004 | CI config, CODEOWNERS, editor tasks and git hooks, auth and crypto modules |
@@ -109,13 +110,36 @@ HIGH   OBF001  auth.py:2  Hidden bidirectional control character
       confidence: high
 ```
 
+## Optional AI review
+
+```bash
+uv sync --extra claude && uv run prscreen scan --git origin/main...HEAD --ai claude   # or --ai ollama (free, local)
+```
+
+A model can add notes to findings and ask up to 5 questions about added lines the rules missed,
+which is aimed at logic changes that no pattern catches. The design assumes the model can be
+manipulated by the diff, so:
+
+- **It can only add.** Rule findings are fixed before the model runs, and no code path lets its
+  reply remove or change them.
+- **Every claim is checked.** The reply must match a strict schema, questions must quote a real
+  added line, and notes that dismiss a finding ("false positive", "safe to merge") are rejected.
+- **What the model sees is controlled.** PR content goes in a nonce-delimited block with secrets
+  redacted.
+- **Injections are reported anyway.** Rule OBF008 flags text written to AI tools, with or without
+  `--ai`.
+
+Ten hostile model replies are tested and none changes a rule finding. The safety properties are
+tested; how useful the questions are has not been measured yet, because no live model was
+available. Details are in [docs/ai.md](docs/ai.md).
+
 ## Evaluation
 
 | Measure | Result |
 | --- | --- |
-| Labeled cases | 63 (38 risky, 25 harmless look-alikes) |
-| Expected findings caught (recall) | 62 / 65 (95.4%) |
-| Findings that were expected (precision on labeled cases) | 62 / 63 (98.4%) |
+| Labeled cases | 65 (39 risky, 26 harmless look-alikes) |
+| Expected findings caught (recall) | 63 / 66 (95.5%) |
+| Findings that were expected (precision on labeled cases) | 63 / 64 (98.4%) |
 | Real merged PRs scanned | 95 from 10 projects, 8,713 changed lines |
 | Real PRs with a medium or high finding | **0 / 95** |
 | Low (informational) findings per real PR | 0.67 |
@@ -188,7 +212,7 @@ The full analysis, including what prscreen cannot protect against, is in
 3. ✅ Evaluation corpus of risky and harmless look-alike PRs, an `eval` command, published
    precision and false-alarm numbers
 4. ✅ GitHub Action (read-only token, no secrets), CI, threat model, setup guide
-5. Optional AI layer that can explain and add questions but never remove a finding, with
+5. ✅ Optional AI layer that can explain and add questions but never remove a finding, with
    prompt-injection tests
 6. Demo repository with one PR per category and a clean PR where the tool stays quiet
 
