@@ -5,11 +5,17 @@ human reviewer. It looks for things like leaked secrets, unexpected network call
 code, dangerous shell commands, weakened security settings and CI changes. It only reports:
 it never approves, rejects or edits a pull request, and it never calls code or people malicious.
 
-> **Status: stage 5 of 6.** 45 rules in 8 categories, measured on 65 labeled cases and 95 real
-> merged pull requests ([results](#evaluation)), packaged as a GitHub Action that needs only a
-> read-only token ([setup](docs/setup.md), [threat model](docs/threat-model.md)), with an optional
-> AI reviewer that can add questions but never remove a finding ([AI design](docs/ai.md)). See
-> [Roadmap](#roadmap).
+**At a glance**
+
+- **45 rules in 8 categories**, measured on 65 labeled cases and 95 real merged pull requests:
+  95% recall on the labeled cases, and **0 of 95** real PRs got a medium or high finding
+  ([evaluation](#evaluation)).
+- **A GitHub Action** that needs only a read-only token and no secrets, so it is safe on pull
+  requests from forks ([setup](docs/setup.md), [threat model](docs/threat-model.md)).
+- **An optional AI reviewer** that can add questions but never remove a finding
+  ([AI design](docs/ai.md)).
+- **A demo**: 10 pull requests, each planting one kind of risky change plus one clean one, with the
+  findings for each in [docs/demo.md](docs/demo.md).
 
 ## Use it on GitHub
 
@@ -109,6 +115,31 @@ HIGH   OBF001  auth.py:2  Hidden bidirectional control character
       benign if:  Right-to-left text (Arabic, Hebrew, Persian) in strings, comments or ...
       confidence: high
 ```
+
+## Demo
+
+`scripts/demo.py build` creates a small Flask app with one branch per scenario. The scenarios are
+a leaked AWS key, install-time environment exfiltration, a pwn-request workflow, Trojan Source, a
+typosquatted dependency with an extra index, weakened TLS/debug/auth settings, an obfuscated
+payload, credential theft, and a prompt injection aimed at AI reviewers. There is also an
+ordinary pagination feature.
+
+| Pull request | prscreen |
+| --- | --- |
+| Clean feature (pagination) | quiet |
+| Leaked secret | SEC002, SEC003, SEC005 |
+| Install-time exfiltration | EXE005, NET002, NET004 |
+| Pwn request | CI001, CI002 |
+| Trojan Source | OBF001 |
+| Typosquat and extra index | DEP002, DEP003 |
+| Weakened security | CFG001, CFG003, CFG005 |
+| Obfuscated payload | OBF004, OBF005 |
+| Credential theft | NET003, NET005 |
+| Prompt injection | OBF008 (the admin bypass next to it is not caught: a documented limitation) |
+
+Every payload is inert, and a test re-checks every row against the current rules.
+[docs/demo.md](docs/demo.md) has the full findings, and [docs/demo-setup.md](docs/demo-setup.md)
+covers publishing it as live pull requests on GitHub.
 
 ## Optional AI review
 
@@ -214,7 +245,14 @@ The full analysis, including what prscreen cannot protect against, is in
 4. ✅ GitHub Action (read-only token, no secrets), CI, threat model, setup guide
 5. ✅ Optional AI layer that can explain and add questions but never remove a finding, with
    prompt-injection tests
-6. Demo repository with one PR per category and a clean PR where the tool stays quiet
+6. ✅ Demo repository with one PR per category and a clean PR where the tool stays quiet
+   (built locally; publishing it is in [docs/demo-setup.md](docs/demo-setup.md))
+
+**Not done yet, and worth doing next:**
+
+- Push the repositories and watch CI and the action run on GitHub for the first time.
+- Measure the AI layer with a live model.
+- Collect a labeled set written by someone other than the rule author.
 
 ## License
 
