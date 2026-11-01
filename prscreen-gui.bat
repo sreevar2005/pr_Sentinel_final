@@ -6,5 +6,12 @@ where uv >nul 2>nul || (
   pause
   exit /b 1
 )
-uv run prscreen gui
+rem Run through python -m, not prscreen.exe: Windows locks a running .exe, and a locked
+rem prscreen.exe would stop "uv run" from updating the project the next time it starts.
+uv run python -m prscreen gui
+if errorlevel 1 (
+  echo.
+  echo prscreen could not start. If the message above says "Access is denied", another prscreen
+  echo window is still open: close it and double-click this file again.
+)
 pause
