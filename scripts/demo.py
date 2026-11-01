@@ -1,6 +1,6 @@
 """Build the prscreen demo repository, or report what prscreen finds on each demo pull request.
 
-    uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/prscreen@<commit-sha>
+    uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/pr_Sentinel_final@<commit-sha>
     uv run python scripts/demo.py report > docs/demo.md
 
 ``build`` creates a git repository with a small Flask app on ``main`` and one branch per
@@ -68,7 +68,7 @@ BASE_FILES = {
     "README.md": """\
 # acme-notes (prscreen demo)
 
-A deliberately small Flask app used to demonstrate [prscreen](https://github.com/sreevar2005/prscreen).
+A deliberately small Flask app used to demonstrate [prscreen](https://github.com/sreevar2005/pr_Sentinel_final).
 Each open pull request plants one kind of risky change; one is an ordinary feature on which
 prscreen should stay quiet. Nothing in this repository is meant to be run, and every "payload" is
 inert.
@@ -439,7 +439,7 @@ def main(argv: list[str] | None = None) -> int:
     build_cmd.add_argument("path", type=Path)
     build_cmd.add_argument(
         "--action",
-        default="sreevar2005/prscreen@main",
+        default="sreevar2005/pr_Sentinel_final@main",
         help="how the demo's workflow references prscreen; pin a commit SHA once it is published",
     )
     commands.add_parser("report", help="print docs/demo.md")
@@ -450,7 +450,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp) / "demo"
-        build(repo, "sreevar2005/prscreen@main")
+        build(repo, "sreevar2005/pr_Sentinel_final@main")
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8")
         sys.stdout.write(report(scan_branches(repo)))

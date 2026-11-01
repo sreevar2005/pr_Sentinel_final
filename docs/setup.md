@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0             # both the base and head commits are needed for the diff
           persist-credentials: false # nothing later in the job needs the token
-      - uses: sreevar2005/prscreen@<commit-sha> # pin to a commit, never a tag or branch
+      - uses: sreevar2005/pr_Sentinel_final@<commit-sha> # pin to a commit, never a tag or branch
 ```
 
 Do not use `pull_request_target` for this workflow. prscreen does not need secrets or write access,
@@ -64,7 +64,7 @@ To list findings under *Security → Code scanning*, write SARIF and upload it. 
 or condition:
 
 ```yaml
-      - uses: sreevar2005/prscreen@<commit-sha>
+      - uses: sreevar2005/pr_Sentinel_final@<commit-sha>
         with:
           sarif-file: prscreen.sarif
       - if: github.event.pull_request.head.repo.full_name == github.repository
@@ -115,7 +115,7 @@ from branches of your own repository, because fork PRs never receive secrets:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           python3 -m venv /tmp/prscreen
-          /tmp/prscreen/bin/pip install --quiet "prscreen[claude] @ git+https://github.com/sreevar2005/prscreen@<commit-sha>"
+          /tmp/prscreen/bin/pip install --quiet "prscreen[claude] @ git+https://github.com/sreevar2005/pr_Sentinel_final@<commit-sha>"
           printf '%s' "$PR_BODY" > /tmp/pr-body.md
           /tmp/prscreen/bin/prscreen scan --git "$BASE...$HEAD" --ai claude \
             --pr-title "$PR_TITLE" --pr-body-file /tmp/pr-body.md \

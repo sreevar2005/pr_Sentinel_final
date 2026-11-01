@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       # "./" runs the action from this pull request's own code, which is the point here: it tests
-      # the change. Other repositories pin a release, e.g. uses: sreevar2005/prscreen@<commit-sha>.
+      # the change. Other repositories pin a release, e.g. uses: sreevar2005/pr_Sentinel_final@<commit-sha>.
       - uses: ./
         with:
           sarif-file: prscreen.sarif

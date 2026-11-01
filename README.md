@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: sreevar2005/prscreen@<commit-sha>
+      - uses: sreevar2005/pr_Sentinel_final@<commit-sha>
 ```
 
 Findings appear as annotations on the changed lines and in the job summary. prscreen needs no

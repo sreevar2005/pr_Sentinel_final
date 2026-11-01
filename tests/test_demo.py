@@ -21,7 +21,7 @@ _spec.loader.exec_module(demo)
 @pytest.fixture(scope="module")
 def results(tmp_path_factory):
     repo = tmp_path_factory.mktemp("demo") / "repo"
-    demo.build(repo, "sreevar2005/prscreen@main")
+    demo.build(repo, "sreevar2005/pr_Sentinel_final@main")
     return demo.scan_branches(repo)
 
 

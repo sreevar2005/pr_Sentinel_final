@@ -4,20 +4,21 @@ These steps put prscreen on GitHub and give it a live demo: a repository whose o
 show prscreen's annotations and job summaries on real GitHub pages. They need your GitHub account,
 so they are written for you to run. Nothing here is automated on your behalf.
 
-## 1. Publish prscreen
+## 1. prscreen itself
 
-Create an empty public repository named `prscreen` on GitHub (no README, no license, no
-.gitignore), then:
+prscreen is published at
+[github.com/sreevar2005/pr_Sentinel_final](https://github.com/sreevar2005/pr_Sentinel_final), and
+other repositories use it as `sreevar2005/pr_Sentinel_final@<commit-sha>`. To publish a fork or a
+copy elsewhere:
 
 ```bash
 cd "D:/Semisters/5th Sem/Track/Track_project"
-git remote add origin https://github.com/sreevar2005/prscreen.git
+git remote add origin https://github.com/<you>/<repo>.git
 git push -u origin main
 ```
 
 Open the repository's **Actions** tab and check that the **CI** workflow passes: tests on Ubuntu
-and Windows with Python 3.12 and 3.13, plus the action smoke test. This is the first time the
-workflows run anywhere.
+and Windows with Python 3.12 and 3.13, plus the action smoke test.
 
 Note the commit to pin:
 
@@ -32,7 +33,7 @@ Rebuild it so the demo follows prscreen's own advice:
 
 ```bash
 rm -rf "../prscreen-demo"
-uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/prscreen@<commit-sha>
+uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/pr_Sentinel_final@<commit-sha>
 ```
 
 ## 3. Publish the demo
