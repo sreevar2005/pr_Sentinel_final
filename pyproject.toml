@@ -11,7 +11,7 @@ dependencies = []
 
 [project.optional-dependencies]
 # Only for --ai claude. The rules and the GitHub Action never need it.
-claude = ["anthropic>=1.0,<2"]
+claude = ["anthropic>=1.0,<3"]
 
 [project.scripts]
 prscreen = "prscreen.cli:main"
@@ -22,7 +22,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6",
     "mypy>=1.11",
-    "anthropic>=1.0,<2",  # type-checks the optional Claude provider
+    "anthropic>=1.0,<3",  # type-checks the optional Claude provider
 ]
 
 [build-system]
