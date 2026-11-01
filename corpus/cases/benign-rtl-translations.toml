@@ -1,0 +1,11 @@
+kind = "benign"
+title = "Hebrew and Arabic translations with right-to-left marks"
+source = "synthetic look-alike of OBF001"
+
+[[file]]
+path = "locale/he/LC_MESSAGES/messages.po"
+added = ['msgid "Order #%s"', 'msgstr "{{RLM}}הזמנה #%s"']
+
+[[file]]
+path = "app/i18n.py"
+added = ['GREETINGS = {"ar": "مرحبا{{RLM}}", "he": "שלום"}']

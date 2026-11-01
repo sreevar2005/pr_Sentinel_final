@@ -1,0 +1,95 @@
+diff --git a/packages/vite/src/node/__tests__/optimizer/cacheDir.spec.ts b/packages/vite/src/node/__tests__/optimizer/cacheDir.spec.ts
+new file mode 100644
+index 00000000000000..372410f56d0d8c
+--- /dev/null
++++ b/packages/vite/src/node/__tests__/optimizer/cacheDir.spec.ts
+@@ -0,0 +1,54 @@
++import path from 'node:path'
++import { describe, expect, test } from 'vitest'
++import type { Environment } from '../../environment'
++import {
++  createIsOptimizedDepFile,
++  createIsOptimizedDepUrl,
++} from '../../optimizer'
++import { normalizePath, removeLeadingSlash } from '../../utils'
++
++const root = normalizePath(path.resolve(import.meta.dirname, '/project'))
++const cacheDir = normalizePath(path.resolve(import.meta.dirname, '/cache'))
++const environment = {
++  name: 'client',
++  config: { root, cacheDir },
++} as Environment
++const cacheDirNames = [
++  'deps',
++  'deps_ssr',
++  'deps_ssr_worker',
++  'deps_temp_123',
++  'deps-extra',
++]
++
++describe('createIsOptimizedDepFile', () => {
++  const isFile = createIsOptimizedDepFile(environment)
++
++  for (const dir of cacheDirNames) {
++    test(`classifies files in ${dir}`, () => {
++      expect(isFile(`${cacheDir}/${dir}/dep.js?v=abc`)).toBe(dir === 'deps')
++    })
++  }
++})
++
++describe('createIsOptimizedDepUrl', () => {
++  const isUrl = createIsOptimizedDepUrl(environment)
++
++  for (const dir of cacheDirNames) {
++    test(`classifies URLs in ${dir}`, () => {
++      expect(
++        isUrl(`/@fs/${removeLeadingSlash(cacheDir)}/${dir}/dep.js.map`),
++      ).toBe(dir === 'deps')
++    })
++  }
++
++  test('matches root-relative URLs when the cache is inside root', () => {
++    const isUrlInsideRoot = createIsOptimizedDepUrl({
++      name: 'client',
++      config: { root, cacheDir: `${root}/cache` },
++    } as Environment)
++
++    expect(isUrlInsideRoot('/cache/deps/dep.js')).toBe(true)
++    expect(isUrlInsideRoot('/cache/deps_other/dep.js')).toBe(false)
++  })
++})
+diff --git a/packages/vite/src/node/optimizer/index.ts b/packages/vite/src/node/optimizer/index.ts
+index 6e72404988cd0f..a51975abcba9b1 100644
+--- a/packages/vite/src/node/optimizer/index.ts
++++ b/packages/vite/src/node/optimizer/index.ts
+@@ -14,7 +14,7 @@ import {
+ } from 'rolldown'
+ import { isDynamicPattern } from 'tinyglobby'
+ import type { DepsOptimizerEsbuildOptions } from '#types/internal/esbuildOptions'
+-import { isWindows } from '../../shared/utils'
++import { isWindows, withTrailingSlash } from '../../shared/utils'
+ import type { ResolvedConfig } from '../config'
+ import {
+   ESBUILD_BASELINE_WIDELY_AVAILABLE_TARGET,
+@@ -988,7 +988,7 @@ function getDepsCacheDirPrefix(environment: Environment): string {
+ export function createIsOptimizedDepFile(
+   environment: Environment,
+ ): (id: string) => boolean {
+-  const depsCacheDirPrefix = getDepsCacheDirPrefix(environment)
++  const depsCacheDirPrefix = withTrailingSlash(getDepsCacheDir(environment))
+   return (id) => id.startsWith(depsCacheDirPrefix)
+ }
+ 
+@@ -996,8 +996,10 @@ export function createIsOptimizedDepUrl(
+   environment: Environment,
+ ): (url: string) => boolean {
+   const { root } = environment.config
+-  const depsCacheDir = getDepsCacheDirPrefix(environment)
+-  const depsCacheDirPrefix = fileToModuleUrl(depsCacheDir, root)
++  const depsCacheDir = getDepsCacheDir(environment)
++  const depsCacheDirPrefix = withTrailingSlash(
++    fileToModuleUrl(depsCacheDir, root),
++  )
+   return function isOptimizedDepUrl(url: string): boolean {
+     return url.startsWith(depsCacheDirPrefix)
+   }

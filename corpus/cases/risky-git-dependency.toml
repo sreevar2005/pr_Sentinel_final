@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Dependency installed straight from a personal git repository"
+source = "synthetic"
+expect = ["DEP001 package.json:2", "DEP003 package.json:2"]
+
+[[file]]
+path = "package.json"
+removed = ['  "dependencies": {']
+added = ['  "dependencies": {', '    "date-utils": "git+https://github.com/someone/date-utils.git#main",']

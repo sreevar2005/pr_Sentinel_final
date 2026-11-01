@@ -1,0 +1,58 @@
+diff --git a/README.md b/README.md
+index 71b3d092463d6..2166728c19413 100644
+--- a/README.md
++++ b/README.md
+@@ -58,6 +58,7 @@ The key features are:
+ <a href="https://docs.railway.com/guides/fastapi?utm_medium=integration&utm_source=docs&utm_campaign=fastapi" target="_blank" title="Deploy enterprise applications at startup speed"><img src="https://fastapi.tiangolo.com/img/sponsors/railway.png"></a>
+ <a href="https://serpapi.com/?utm_source=fastapi_website" target="_blank" title="SerpApi: Web Search API"><img src="https://fastapi.tiangolo.com/img/sponsors/serpapi.png"></a>
+ <a href="https://www.greptile.com/?utm_source=fastapi&utm_medium=sponsorship&utm_campaign=fastapi_sponsor_page" target="_blank" title="Greptile: The AI Code Reviewer"><img src="https://fastapi.tiangolo.com/img/sponsors/greptile.png"></a>
++<a href="https://microauth.com/fastapi?utm_source=fastapi" target="_blank" title="MicroAuth - Launch an API business in minutes: branded developer portals, rate limiting, and billing for your API"><img src="https://fastapi.tiangolo.com/img/sponsors/microauth.png"></a>
+ 
+ ### Silver Sponsors
+ 
+diff --git a/docs/en/data/sponsors.yml b/docs/en/data/sponsors.yml
+index 179c0323a414e..5e5d6780779a1 100644
+--- a/docs/en/data/sponsors.yml
++++ b/docs/en/data/sponsors.yml
+@@ -34,6 +34,10 @@ gold:
+     title: "Greptile: The AI Code Reviewer"
+     img: /img/sponsors/greptile.png
+     banner_img: /img/sponsors/greptile-banner.png
++  - url: https://microauth.com/fastapi?utm_source=fastapi
++    title: "MicroAuth - Launch an API business in minutes: branded developer portals, rate limiting, and billing for your API"
++    img: /img/sponsors/microauth.png
++    banner_img: /img/sponsors/microauth-banner.png
+ silver:
+   - url: https://databento.com/?utm_source=fastapi&utm_medium=sponsor&utm_content=display
+     title: Pay as you go for market data
+diff --git a/docs/en/data/sponsors_badge.yml b/docs/en/data/sponsors_badge.yml
+index d2fd7029f3f8c..e0dc792f0b3fa 100644
+--- a/docs/en/data/sponsors_badge.yml
++++ b/docs/en/data/sponsors_badge.yml
+@@ -50,3 +50,4 @@ logins:
+   - greptileai
+   - talorelowen
+   - tutorcruncher
++  - zyref-llc  # MicroAuth
+diff --git a/docs/en/docs/img/sponsors/microauth-banner.png b/docs/en/docs/img/sponsors/microauth-banner.png
+new file mode 100644
+index 0000000000000..51279b7462ada
+Binary files /dev/null and b/docs/en/docs/img/sponsors/microauth-banner.png differ
+diff --git a/docs/en/docs/img/sponsors/microauth.png b/docs/en/docs/img/sponsors/microauth.png
+new file mode 100644
+index 0000000000000..b7d5574960b24
+Binary files /dev/null and b/docs/en/docs/img/sponsors/microauth.png differ
+diff --git a/docs/en/overrides/partials/banner-sponsors.html b/docs/en/overrides/partials/banner-sponsors.html
+index 482f8da0eaff3..b953eca24ef90 100644
+--- a/docs/en/overrides/partials/banner-sponsors.html
++++ b/docs/en/overrides/partials/banner-sponsors.html
+@@ -40,3 +40,9 @@
+     <img class="sponsor-image" src="/img/sponsors/greptile-banner.png" alt="Greptile: The AI Code Reviewer" />
+   </a>
+ </div>
++<div class="item">
++  <a title="MicroAuth - Launch an API business in minutes: branded developer portals, rate limiting, and billing for your API" style="display: block; position: relative;" href="https://microauth.com/fastapi?utm_source=fastapi" target="_blank">
++    <span class="sponsor-badge">sponsor</span>
++    <img class="sponsor-image" src="/img/sponsors/microauth-banner.png" alt="MicroAuth - Launch an API business in minutes: branded developer portals, rate limiting, and billing for your API" />
++  </a>
++</div>

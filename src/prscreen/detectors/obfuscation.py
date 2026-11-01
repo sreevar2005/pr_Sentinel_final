@@ -105,6 +105,7 @@ DECODE_AND_RUN = Rule(
         "that was reviewed. Legitimate software almost never needs this."
     ),
     benign="Very rare: some packers and self-extracting installers. It still deserves a close look.",
+    supersedes=("EXE002",),
 )
 LONG_LINE = Rule(
     id="OBF006",

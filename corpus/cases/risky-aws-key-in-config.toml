@@ -1,0 +1,15 @@
+kind = "risky"
+title = "AWS access key committed in application config"
+source = "synthetic; the most common real-world leak"
+expect = ["SEC002 app/storage.py:4"]
+
+[[file]]
+path = "app/storage.py"
+status = "added"
+added = [
+    "import boto3",
+    "",
+    "s3 = boto3.client(",
+    '    "s3", aws_access_key_id="{{AWS_KEY}}", region_name="eu-west-1"',
+    ")",
+]

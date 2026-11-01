@@ -1,0 +1,788 @@
+diff --git a/docs/en/docs/release-notes.md b/docs/en/docs/release-notes.md
+index fd81c4bd48e12..fa5ff8e6e8c15 100644
+--- a/docs/en/docs/release-notes.md
++++ b/docs/en/docs/release-notes.md
+@@ -7,6 +7,12 @@ hide:
+ 
+ ## Latest Changes
+ 
++Omitted `bool` and `bool | None` form fields now use their declared defaults or produce missing-field errors, consistent with other fields and Pydantic behavior. FastAPI no longer infers `False` for omitted booleans. This applies to individual form parameters, form models, and unions of form models.
++
++Omitted boolean model fields are excluded from `model_dump(exclude_unset=True)`, and their defaults no longer count as submitted fields during union selection. Default factories and `validate_default` follow the usual rules.
++
++For HTML checkboxes, declare a boolean with a default of `False`. See [Boolean Form Fields](https://fastapi.tiangolo.com/tutorial/request-forms/#boolean-form-fields).
++
+ ## 0.161.1 (2026-10-22)
+ 
+ ### Fixes
+diff --git a/docs/en/docs/tutorial/request-form-models.md b/docs/en/docs/tutorial/request-form-models.md
+index 3c4c7847e062c..55ce7cba8fffb 100644
+--- a/docs/en/docs/tutorial/request-form-models.md
++++ b/docs/en/docs/tutorial/request-form-models.md
+@@ -28,7 +28,7 @@ You just need to declare a **Pydantic model** with the fields you want to receiv
+ 
+ **FastAPI** will **extract** the data for **each field** from the **form data** in the request and give you the Pydantic model you defined.
+ 
+-Boolean fields follow the same [omission rules](request-forms.md#boolean-form-fields) as individual form parameters.
++For [HTML checkboxes](request-forms.md#boolean-form-fields), declare boolean fields with a default of `False`.
+ 
+ ## Check the Docs { #check-the-docs }
+ 
+diff --git a/docs/en/docs/tutorial/request-forms.md b/docs/en/docs/tutorial/request-forms.md
+index 4bfd3333f8d04..11ee87e5c68a7 100644
+--- a/docs/en/docs/tutorial/request-forms.md
++++ b/docs/en/docs/tutorial/request-forms.md
+@@ -46,9 +46,11 @@ To declare form bodies, you need to use `Form` explicitly, because without it th
+ 
+ ## Boolean Form Fields { #boolean-form-fields }
+ 
+-Browsers omit unchecked checkboxes. **FastAPI** treats omitted `bool` and `bool | None` form fields as `False`, even when their default is `True` or `None`.
++Browsers omit unchecked checkboxes when submitting HTML forms. Declare a boolean form parameter with a default of `False` to receive `False` when unchecked:
+ 
+-For JSON requests and direct Pydantic validation, required fields and defaults work as usual.
++{* ../../docs_src/request_forms/tutorial002_an_py310.py hl[9] *}
++
++A checked checkbox sends its value, which defaults to `"on"`. **FastAPI** accepts `"on"` as `True`.
+ 
+ ## About "Form Fields" { #about-form-fields }
+ 
+diff --git a/docs_src/request_forms/tutorial002_an_py310.py b/docs_src/request_forms/tutorial002_an_py310.py
+new file mode 100644
+index 0000000000000..a1600f9f95328
+--- /dev/null
++++ b/docs_src/request_forms/tutorial002_an_py310.py
+@@ -0,0 +1,10 @@
++from typing import Annotated
++
++from fastapi import FastAPI, Form
++
++app = FastAPI()
++
++
++@app.post("/preferences/")
++async def update_preferences(subscribe: Annotated[bool, Form()] = False):
++    return {"subscribe": subscribe}
+diff --git a/docs_src/request_forms/tutorial002_py310.py b/docs_src/request_forms/tutorial002_py310.py
+new file mode 100644
+index 0000000000000..41f5078f84fe2
+--- /dev/null
++++ b/docs_src/request_forms/tutorial002_py310.py
+@@ -0,0 +1,8 @@
++from fastapi import FastAPI, Form
++
++app = FastAPI()
++
++
++@app.post("/preferences/")
++async def update_preferences(subscribe: bool = Form(default=False)):
++    return {"subscribe": subscribe}
+diff --git a/fastapi/dependencies/utils.py b/fastapi/dependencies/utils.py
+index 24f4be23cd5ec..247d0265ddf31 100644
+--- a/fastapi/dependencies/utils.py
++++ b/fastapi/dependencies/utils.py
+@@ -1071,26 +1071,9 @@ def _extract_form_items(
+     field_aliases: set[str] = set()
+ 
+     for field in body_fields:
+-        validation_alias = field.field_info.validation_alias
+-        has_alias_path = isinstance(validation_alias, AliasPath) or (
+-            isinstance(validation_alias, AliasChoices)
+-            and any(
+-                isinstance(choice, AliasPath) for choice in validation_alias.choices
+-            )
+-        )
+-        aliases = [alias for alias, _ in _get_param_aliases(field)]
+-        # Interpret missing boolean form fields as unchecked HTML checkboxes.
+-        infer_false_if_missing = (
+-            not has_alias_path
+-            and field.field_info.annotation in (bool, bool | None)
+-            and not any(alias in received_body for alias in aliases)
+-        )
+-        for alias in aliases:
++        for alias, _ in _get_param_aliases(field):
+             field_aliases.add(alias)
+-            if infer_false_if_missing:
+-                value: Any = False
+-            else:
+-                value = _get_multidict_value(field, received_body, alias=alias)
++            value = _get_multidict_value(field, received_body, alias=alias)
+             if value is not Undefined:
+                 yield alias, value, field
+                 # Leave later aliases unchanged for other fields or extra validation.
+@@ -1141,7 +1124,7 @@ def _is_form_model_supplied(
+     model: type[BaseModel],
+     received_body: FormData,
+ ) -> bool:
+-    # Check raw keys before empty fields are removed or checkboxes inferred.
++    # Check raw keys before empty fields are removed.
+     own_names = {
+         alias
+         for item in get_cached_model_fields(model)
+diff --git a/tests/test_forms_multiple_models.py b/tests/test_forms_multiple_models.py
+index 05883a925216f..a817af2e0228a 100644
+--- a/tests/test_forms_multiple_models.py
++++ b/tests/test_forms_multiple_models.py
+@@ -232,7 +232,7 @@ def submit_dependency(
+     assert models["Preferences"]["additionalProperties"] is False
+ 
+ 
+-def test_model_defaults_checkboxes_and_validators_are_independent():
++def test_model_defaults_and_validators_are_independent():
+     app = FastAPI()
+     inputs = []
+ 
+@@ -274,9 +274,9 @@ def submit(
+     response = client.post("/")
+     assert response.status_code == 200, response.text
+     assert response.json() == {
+-        "settings": {"label": "default", "enabled": False, "tags": []},
++        "settings": {"label": "default", "enabled": True, "tags": []},
+         "other": {"label": "other", "enabled": "other"},
+-        "fields_set": ["enabled"],
++        "fields_set": [],
+         "other_fields_set": [],
+     }
+     response = client.post(
+diff --git a/tests/test_forms_multiple_unions.py b/tests/test_forms_multiple_unions.py
+index 6ac8b74f9c0fb..2687c9b6d53c9 100644
+--- a/tests/test_forms_multiple_unions.py
++++ b/tests/test_forms_multiple_unions.py
+@@ -18,7 +18,7 @@ class Person(BaseModel):
+     kind: Literal["person"] = Field(alias="contact_type")
+     name: str
+     tags: list[str] = Field(default_factory=list)
+-    enabled: bool = True
++    enabled: bool = False
+ 
+ 
+ class Company(BaseModel):
+@@ -704,7 +704,7 @@ def test_json_and_original_model_schemas_are_unchanged():
+         json={"contact": {"contact_type": "person", "name": "Rick"}, "token": "secret"},
+     )
+     assert response.status_code == 200, response.text
+-    assert response.json()["enabled"] is True
++    assert response.json()["enabled"] is False
+     schemas = app.openapi()["components"]["schemas"]
+     assert set(schemas["Person"]["properties"]) == {
+         "contact_type",
+diff --git a/tests/test_forms_optional_models.py b/tests/test_forms_optional_models.py
+index 90b6804ee9ff8..8600cb7ab4200 100644
+--- a/tests/test_forms_optional_models.py
++++ b/tests/test_forms_optional_models.py
+@@ -22,7 +22,7 @@ class Profile(BaseModel):
+         name: str
+         age: int
+         tags: list[str] = Field(default_factory=list)
+-        enabled: bool = True
++        enabled: bool = False
+ 
+     @app.post("/")
+     def submit(profile: Annotated[Profile | None, Form()] = None):
+@@ -114,7 +114,7 @@ class Profile(BaseModel):
+         name: str
+         age: int
+         tags: list[str] = Field(default_factory=list)
+-        enabled: bool = True
++        enabled: bool = False
+ 
+     @app.post("/")
+     def submit(
+@@ -176,7 +176,7 @@ class Profile(BaseModel):
+         name: str
+         age: int
+         tags: list[str] = Field(default_factory=list)
+-        enabled: bool = True
++        enabled: bool = False
+ 
+     @app.post("/")
+     def submit(profile: Annotated[Profile | None, Form()] = None):
+@@ -224,7 +224,7 @@ class Profile(BaseModel):
+         name: str
+         age: int
+         tags: list[str] = Field(default_factory=list)
+-        enabled: bool = True
++        enabled: bool = False
+ 
+     @app.post("/")
+     def submit(
+@@ -276,7 +276,7 @@ def test_unknown_fields_and_sibling_models(extra, required_name):
+     class Profile(BaseModel):
+         model_config = ConfigDict(extra=extra)
+         name: str = Field() if required_name else Field("default")
+-        enabled: bool = True
++        enabled: bool = False
+ 
+     class Credentials(BaseModel):
+         token: str
+@@ -458,7 +458,7 @@ def validated_default(
+     calls.clear()
+     response = client.post("/factory", data={"name": "submitted"})
+     assert response.status_code == 200, response.text
+-    assert response.json()["enabled"] is False
++    assert response.json()["enabled"] is True
+     assert calls == ["submitted"]
+     calls.clear()
+     response = client.post("/validated-default")
+diff --git a/tests/test_forms_optional_unions.py b/tests/test_forms_optional_unions.py
+index c4b064579d18b..4e2f3f39b7ac0 100644
+--- a/tests/test_forms_optional_unions.py
++++ b/tests/test_forms_optional_unions.py
+@@ -19,7 +19,7 @@
+ class TextForm(BaseModel):
+     kind: Literal["text"]
+     value: str
+-    enabled: bool = True
++    enabled: bool = False
+ 
+ 
+ class ListForm(BaseModel):
+@@ -372,7 +372,7 @@ def read_validated_default(
+     calls.clear()
+     response = client.post("/factory", data={"kind": "defaults"})
+     assert response.status_code == 200, response.text
+-    assert response.json() == {"kind": "defaults", "tags": [], "enabled": False}
++    assert response.json() == {"kind": "defaults", "tags": [], "enabled": True}
+     assert calls == ["validated"]
+     calls.clear()
+     response = client.post("/validated-default")
+diff --git a/tests/test_request_params/test_form/test_nullable_and_defaults.py b/tests/test_request_params/test_form/test_nullable_and_defaults.py
+index abd7d1200341e..33e9fc78cc080 100644
+--- a/tests/test_request_params/test_form/test_nullable_and_defaults.py
++++ b/tests/test_request_params/test_form/test_nullable_and_defaults.py
+@@ -721,39 +721,20 @@ def read_model(params: Annotated[Model, Form()]):
+     assert response.json() == {"value": True}
+ 
+ 
+-@pytest.mark.parametrize(
+-    "path",
+-    [
+-        "/parameter",
+-        "/model",
+-        "/parameter-default",
+-        "/model-default",
+-    ],
+-)
++@pytest.mark.parametrize("path", ["/parameter", "/model"])
+ def test_unchecked_checkbox_is_false(path):
+     app = FastAPI()
+ 
+     class Model(BaseModel):
+-        value: bool
++        value: bool = False
+ 
+     @app.post("/parameter")
+-    def read_parameter(value: Annotated[bool, Form()]):
++    def read_parameter(value: Annotated[bool, Form()] = False):
+         return {"value": value}
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
+-
+-    class ModelWithDefault(BaseModel):
+-        value: bool = False
+-
+-    @app.post("/parameter-default")
+-    def read_parameter_default(value: Annotated[bool, Form()] = False):
+-        return {"value": value}
+-
+-    @app.post("/model-default")
+-    def read_model_default(params: Annotated[ModelWithDefault, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     checked = client.post(path, data={"value": "on"})
+@@ -769,7 +750,7 @@ def read_model_default(params: Annotated[ModelWithDefault, Form()]):
+     "data,expected",
+     [
+         pytest.param({"value": "on"}, True, id="checked"),
+-        pytest.param({}, False, id="unchecked"),
++        pytest.param({}, True, id="omitted"),
+     ],
+ )
+ def test_checkbox_with_true_default(path, data, expected):
+@@ -784,7 +765,7 @@ def read_parameter(value: Annotated[bool, Form()] = True):
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     response = client.post(path, data=data)
+@@ -793,21 +774,15 @@ def read_model(params: Annotated[Model, Form()]):
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+-@pytest.mark.parametrize(
+-    "data,expected",
+-    [
+-        pytest.param({"value": "on"}, True, id="checked"),
+-        pytest.param({}, False, id="unchecked"),
+-    ],
+-)
+-def test_required_nullable_checkbox(path, data, expected):
++@pytest.mark.parametrize("annotation", [bool, bool | None])
++def test_omitted_required_boolean_is_missing(path, annotation):
+     app = FastAPI()
+ 
+     class Model(BaseModel):
+-        value: bool | None
++        value: annotation
+ 
+     @app.post("/parameter")
+-    def read_parameter(value: Annotated[bool | None, Form()]):
++    def read_parameter(value: Annotated[annotation, Form()]):
+         return {"value": value}
+ 
+     @app.post("/model")
+@@ -815,9 +790,14 @@ def read_model(params: Annotated[Model, Form()]):
+         return params.model_dump(exclude_unset=True)
+ 
+     client = TestClient(app)
+-    response = client.post(path, data=data)
++    response = client.post(path, data={"value": "on"})
+     assert response.status_code == 200
+-    assert response.json() == {"value": expected}
++    assert response.json() == {"value": True}
++    response = client.post(path)
++    assert response.status_code == 422
++    assert [(error["type"], error["loc"]) for error in response.json()["detail"]] == [
++        ("missing", ["body", "value"]),
++    ]
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+@@ -825,7 +805,7 @@ def read_model(params: Annotated[Model, Form()]):
+     "data,expected",
+     [
+         pytest.param({"value": "on"}, True, id="checked"),
+-        pytest.param({}, False, id="unchecked"),
++        pytest.param({}, None, id="omitted"),
+     ],
+ )
+ def test_nullable_checkbox_with_none_default(path, data, expected):
+@@ -840,7 +820,7 @@ def read_parameter(value: Annotated[bool | None, Form()] = None):
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     response = client.post(path, data=data)
+@@ -852,10 +832,11 @@ def read_model(params: Annotated[Model, Form()]):
+     "data,expected",
+     [
+         pytest.param({"value": "on"}, True, id="checked"),
++        pytest.param({"value": "false"}, False, id="explicit-false"),
+         pytest.param({}, False, id="unchecked"),
+     ],
+ )
+-def test_checkbox_with_false_default_is_explicitly_set(data, expected):
++def test_checkbox_default_is_not_explicitly_set(data, expected):
+     app = FastAPI()
+ 
+     class Model(BaseModel):
+@@ -864,6 +845,7 @@ class Model(BaseModel):
+     @app.post("/")
+     def read_model(params: Annotated[Model, Form()]):
+         return {
++            "value": params.value,
+             "fields_set": sorted(params.model_fields_set),
+             "values": params.model_dump(exclude_unset=True),
+         }
+@@ -871,7 +853,11 @@ def read_model(params: Annotated[Model, Form()]):
+     client = TestClient(app)
+     response = client.post("/", data=data)
+     assert response.status_code == 200
+-    assert response.json() == {"fields_set": ["value"], "values": {"value": expected}}
++    assert response.json() == {
++        "value": expected,
++        "fields_set": ["value"] if data else [],
++        "values": {"value": expected} if data else {},
++    }
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+@@ -885,19 +871,19 @@ def test_checkbox_uses_alias(path, alias, validation_alias, data, expected):
+     class Model(BaseModel):
+         value: Annotated[
+             bool, Field(alias=alias, validation_alias=validation_alias)
+-        ] = True
++        ] = False
+ 
+     @app.post("/parameter")
+     def read_parameter(
+         value: Annotated[
+             bool, Form(alias=alias, validation_alias=validation_alias)
+-        ] = True,
++        ] = False,
+     ):
+         return {"value": value}
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     response = client.post(path, data=data)
+@@ -929,11 +915,11 @@ class Model(BaseModel):
+         model_config = config
+         value: Annotated[
+             bool, Field(alias="enabled", validation_alias=validation_alias)
+-        ]
++        ] = False
+ 
+     @app.post("/")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     response = client.post("/", data=data)
+@@ -960,20 +946,20 @@ class Model(BaseModel):
+         value: Annotated[
+             bool,
+             Field(alias="legacy", validation_alias=AliasChoices("enabled", "checkbox")),
+-        ]
++        ] = False
+ 
+     @app.post("/parameter")
+     def read_parameter(
+         value: Annotated[
+             bool,
+             Form(alias="legacy", validation_alias=AliasChoices("enabled", "checkbox")),
+-        ],
++        ] = False,
+     ):
+         return {"value": value}
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     response = client.post(path, data=data)
+@@ -994,7 +980,7 @@ def read_model(params: Annotated[Model, Form()]):
+         ),
+     ],
+ )
+-def test_unchecked_checkbox_with_alias_choices_overrides_defaults(config):
++def test_omitted_booleans_with_alias_choices_use_defaults(config):
+     app = FastAPI()
+ 
+     class Model(BaseModel):
+@@ -1008,12 +994,18 @@ class Model(BaseModel):
+ 
+     @app.post("/")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return {
++            "values": params.model_dump(),
++            "fields_set": sorted(params.model_fields_set),
++        }
+ 
+     client = TestClient(app)
+     response = client.post("/")
+     assert response.status_code == 200
+-    assert response.json() == {"value": False, "nullable": False}
++    assert response.json() == {
++        "values": {"value": True, "nullable": None},
++        "fields_set": [],
++    }
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+@@ -1070,7 +1062,7 @@ def read_model(params: Annotated[Model, Form()]):
+         (AliasChoices("checkbox", AliasPath("enabled")), "checkbox"),
+     ],
+ )
+-def test_checkbox_alias_path_is_unchanged(validation_alias, missing_name):
++def test_required_boolean_with_alias_path(validation_alias, missing_name):
+     app = FastAPI()
+ 
+     class Model(BaseModel):
+@@ -1107,17 +1099,17 @@ def test_checkbox_in_multipart_form(path, checked):
+ 
+     class Model(BaseModel):
+         name: str
+-        value: bool = True
++        value: bool = False
+ 
+     @app.post("/parameter")
+     def read_parameter(
+-        name: Annotated[str, Form()], value: Annotated[bool, Form()] = True
++        name: Annotated[str, Form()], value: Annotated[bool, Form()] = False
+     ):
+         return {"name": name, "value": value}
+ 
+     @app.post("/model")
+     def read_model(params: Annotated[Model, Form()]):
+-        return params.model_dump(exclude_unset=True)
++        return params.model_dump()
+ 
+     client = TestClient(app)
+     if checked:
+@@ -1131,9 +1123,10 @@ def read_model(params: Annotated[Model, Form()]):
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+-def test_unchecked_checkbox_is_validated_without_calling_default_factory(path):
++@pytest.mark.parametrize("validate_default", [False, True])
++def test_omitted_boolean_uses_default_factory(path, validate_default):
+     app = FastAPI()
+-    default_factory = Mock(return_value=True)
++    default_factory = Mock(return_value=False)
+ 
+     def require_checked(value: bool) -> bool:
+         if not value:
+@@ -1144,13 +1137,15 @@ class Model(BaseModel):
+         value: Annotated[
+             bool,
+             AfterValidator(require_checked),
+-            Field(default_factory=default_factory),
++            Field(default_factory=default_factory, validate_default=validate_default),
+         ]
+ 
+     @app.post("/parameter")
+     def read_parameter(
+         value: Annotated[
+-            bool, AfterValidator(require_checked), Form(default_factory=default_factory)
++            bool,
++            AfterValidator(require_checked),
++            Form(default_factory=default_factory, validate_default=validate_default),
+         ],
+     ):
+         return value
+@@ -1163,13 +1158,18 @@ def read_model(params: Annotated[Model, Form()]):
+     checked = client.post(path, data={"value": "on"})
+     assert checked.status_code == 200
+     assert checked.json() is True
+-    response = client.post(path)
+-    assert response.status_code == 422
+-    assert [
+-        (error["type"], error["loc"], error["input"])
+-        for error in response.json()["detail"]
+-    ] == [("value_error", ["body", "value"], False)]
+     default_factory.assert_not_called()
++    response = client.post(path)
++    if validate_default:
++        assert response.status_code == 422
++        assert [
++            (error["type"], error["loc"], error["input"])
++            for error in response.json()["detail"]
++        ] == [("value_error", ["body", "value"], False)]
++    else:
++        assert response.status_code == 200
++        assert response.json() is False
++    default_factory.assert_called_once_with()
+ 
+ 
+ @pytest.mark.parametrize("path", ["/parameter", "/model"])
+@@ -1214,8 +1214,10 @@ def read_json(params: Annotated[Model, Body()]):
+     assert response.json() == {"value": True}
+ 
+     response = client.post("/form")
+-    assert response.status_code == 200
+-    assert response.json() == {"value": False}
++    assert response.status_code == 422
++    assert [(error["type"], error["loc"]) for error in response.json()["detail"]] == [
++        ("missing", ["body", "value"]),
++    ]
+ 
+     assert Model.model_fields["value"].is_required()
+     with pytest.raises(ValidationError) as exc_info:
+diff --git a/tests/test_tutorial/test_request_forms/test_tutorial002.py b/tests/test_tutorial/test_request_forms/test_tutorial002.py
+new file mode 100644
+index 0000000000000..07d7c46c39bf8
+--- /dev/null
++++ b/tests/test_tutorial/test_request_forms/test_tutorial002.py
+@@ -0,0 +1,22 @@
++import importlib
++
++import pytest
++from fastapi.testclient import TestClient
++
++
++@pytest.fixture(name="client", params=["tutorial002_py310", "tutorial002_an_py310"])
++def get_client(request: pytest.FixtureRequest):
++    mod = importlib.import_module(f"docs_src.request_forms.{request.param}")
++    return TestClient(mod.app)
++
++
++def test_unchecked_checkbox(client: TestClient):
++    response = client.post("/preferences/")
++    assert response.status_code == 200
++    assert response.json() == {"subscribe": False}
++
++
++def test_checked_checkbox(client: TestClient):
++    response = client.post("/preferences/", data={"subscribe": "on"})
++    assert response.status_code == 200
++    assert response.json() == {"subscribe": True}
+diff --git a/tests/test_union_form_normalization.py b/tests/test_union_form_normalization.py
+index e645ebe3eae10..c8fde2225ec61 100644
+--- a/tests/test_union_form_normalization.py
++++ b/tests/test_union_form_normalization.py
+@@ -52,6 +52,96 @@ def read_json(data: TextForm | ListForm):
+ client = TestClient(app)
+ 
+ 
++@pytest.mark.parametrize("path", ["/form", "/optional"])
++@pytest.mark.parametrize("multipart", [False, True])
++def test_defaulted_boolean_does_not_influence_union_selection(path, multipart):
++    app = FastAPI()
++
++    class Newsletter(BaseModel):
++        email: str
++        subscribe: bool = False
++
++    class Contact(BaseModel):
++        email: str
++        phone: str
++
++    @app.post("/form")
++    def read_form(data: Annotated[Newsletter | Contact, Form()]):
++        return data
++
++    @app.post("/optional")
++    def read_optional(data: Annotated[Newsletter | Contact | None, Form()] = None):
++        return data
++
++    client = TestClient(app)
++    if multipart:
++        response = client.post(
++            path, files={"email": (None, "a@b.c"), "phone": (None, "123")}
++        )
++    else:
++        response = client.post(path, data={"email": "a@b.c", "phone": "123"})
++    assert response.status_code == 200
++    assert response.json() == {"email": "a@b.c", "phone": "123"}
++
++
++def test_multiple_boolean_defaults_do_not_influence_union_selection():
++    app = FastAPI()
++
++    class Contact(BaseModel):
++        email: str
++        phone: str
++
++    class Newsletter(BaseModel):
++        email: str
++        subscribe: bool = True
++        offers: bool | None = None
++
++    @app.post("/")
++    def read_form(data: Annotated[Contact | Newsletter, Form()]):
++        return {"data": data.model_dump(), "fields_set": sorted(data.model_fields_set)}
++
++    client = TestClient(app)
++    response = client.post("/", data={"email": "a@b.c", "phone": "123"})
++    assert response.status_code == 200
++    assert response.json() == {
++        "data": {"email": "a@b.c", "phone": "123"},
++        "fields_set": ["email", "phone"],
++    }
++    response = client.post("/", data={"email": "a@b.c"})
++    assert response.status_code == 200
++    assert response.json() == {
++        "data": {"email": "a@b.c", "subscribe": True, "offers": None},
++        "fields_set": ["email"],
++    }
++
++
++def test_required_boolean_is_missing_in_union():
++    app = FastAPI()
++
++    class Newsletter(BaseModel):
++        email: str
++        subscribe: bool
++
++    class Contact(BaseModel):
++        email: str
++        phone: str
++
++    @app.post("/")
++    def read_form(data: Annotated[Newsletter | Contact, Form()]):
++        return data
++
++    client = TestClient(app)
++    response = client.post("/", data={"email": "a@b.c", "phone": "123"})
++    assert response.status_code == 200
++    assert response.json() == {"email": "a@b.c", "phone": "123"}
++    response = client.post("/", data={"email": "a@b.c"})
++    assert response.status_code == 422
++    assert [(error["type"], error["loc"]) for error in response.json()["detail"]] == [
++        ("missing", ["body", "Newsletter", "subscribe"]),
++        ("missing", ["body", "Contact", "phone"]),
++    ]
++
++
+ @pytest.mark.parametrize(
+     "path,branch", [("/union", "TextForm"), ("/discriminated", "text")]
+ )
+@@ -105,10 +195,10 @@ def test_omitted_list_is_missing():
+ 
+ 
+ @pytest.mark.parametrize("path", ["/union", "/discriminated"])
+-def test_omitted_boolean_is_explicit_false(path):
++def test_omitted_boolean_is_not_explicitly_set(path):
+     response = client.post(path, data={"kind": "text", "value": "hello"})
+     assert response.status_code == 200
+-    assert response.json() == {"kind": "text", "value": "hello", "enabled": False}
++    assert response.json() == {"kind": "text", "value": "hello"}
+ 
+ 
+ @pytest.mark.parametrize("path", ["/union", "/discriminated"])
+@@ -153,7 +243,7 @@ class DefaultsForm(BaseModel):
+         kind: Literal["defaults"]
+         value: str = "default"
+         items: Annotated[list[str], Field(default_factory=lambda: ["default"])]
+-        enabled: bool
++        enabled: bool = False
+         nullable: bool | None = None
+ 
+     @app.post("/")
+@@ -172,9 +262,9 @@ def read_form(data: Annotated[DefaultsForm | ListForm, form]):
+             "value": "default",
+             "items": ["default"],
+             "enabled": False,
+-            "nullable": False,
++            "nullable": None,
+         },
+-        "set": {"kind": "defaults", "enabled": False, "nullable": False},
++        "set": {"kind": "defaults"},
+     }
+ 
+ 
+@@ -249,7 +339,7 @@ def read_form(data: Annotated[AliasedForm | ListForm, form]):
+         "/", data={"kind": "aliased", "primary": "", "secondary": "hello"}
+     )
+     assert response.status_code == 200
+-    assert response.json() == {"kind": "aliased", "value": "hello", "enabled": False}
++    assert response.json() == {"kind": "aliased", "value": "hello"}
+     response = client.post(
+         "/", data={"kind": "aliased", "primary": "hello", "secondary": ""}
+     )
+@@ -475,7 +565,7 @@ def read_union(
+     client = TestClient(app)
+     response = client.post(path, data={"kind": "text", "legacy": "hello"})
+     assert response.status_code == 200
+-    assert response.json() == {"kind": "text", "value": "hello", "enabled": False}
++    assert response.json() == {"kind": "text", "value": "hello"}
+ 
+ 
+ @pytest.mark.parametrize("form", [Form(), Form(discriminator="kind")])
+@@ -503,7 +593,7 @@ def read_form(
+ 
+     response = client.post("/", data={"kind": "text", "value": "hello"})
+     assert response.status_code == 200
+-    assert response.json() == {"kind": "text", "value": "hello", "enabled": False}
++    assert response.json() == {"kind": "text", "value": "hello"}
+ 
+     response = client.post("/", data={"kind": "text", "value": ""})
+     assert response.status_code == 422

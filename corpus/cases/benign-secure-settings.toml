@@ -1,0 +1,22 @@
+kind = "benign"
+title = "Security settings switched on, narrow CORS and normal file permissions"
+source = "synthetic look-alike of CFG001 to CFG004"
+# NET003 reads any URL in code as a destination, including a CORS origin. Accepted noise (low/low).
+known_noise = ["NET003 api/main.py:1"]
+
+[[file]]
+path = "config/settings/prod.py"
+removed = ["DEBUG = True"]
+added = ["DEBUG = False", "SESSION_COOKIE_SECURE = True", "CSRF_COOKIE_SECURE = True", 'ALLOWED_HOSTS = ["app.acme.co"]']
+
+[[file]]
+path = "app/client.py"
+added = ["resp = requests.get(url, verify=True, timeout=5)", "ctx = ssl.create_default_context()"]
+
+[[file]]
+path = "api/main.py"
+added = ['app.add_middleware(CORSMiddleware, allow_origins=["https://app.acme.co"])']
+
+[[file]]
+path = "Dockerfile"
+added = ["RUN chmod 755 /app/entrypoint.sh", "RUN chmod u+x /app/run.sh"]

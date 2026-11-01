@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Endpoint unpickles the request body"
+source = "synthetic"
+expect = ["EXE004 api/jobs.py:3"]
+
+[[file]]
+path = "api/jobs.py"
+removed = ["    job = Job.from_json(request.get_json())"]
+added = ["@app.post('/jobs/import')", "def import_job():", "    job = pickle.loads(request.data)"]

@@ -1,0 +1,50 @@
+diff --git a/packages/vite/src/node/__tests__/config.spec.ts b/packages/vite/src/node/__tests__/config.spec.ts
+index f41ad578748eeb..14d18503eed58c 100644
+--- a/packages/vite/src/node/__tests__/config.spec.ts
++++ b/packages/vite/src/node/__tests__/config.spec.ts
+@@ -1507,6 +1507,30 @@ describe('resolveConfig', () => {
+     expect(config.environments.ssr.build.rolldownOptions.input).toBeUndefined()
+   })
+ 
++  test('top-level input applies to the SSR environment when build.ssr is true in build', async () => {
++    const config = await resolveConfig(
++      {
++        input: 'src/entry-server.ts',
++        build: { ssr: true },
++      },
++      'build',
++    )
++
++    expect(config.environments.ssr.input).toBe('src/entry-server.ts')
++  })
++
++  test('top-level input does not apply to the SSR environment when build.ssr is true in dev', async () => {
++    const config = await resolveConfig(
++      {
++        input: 'src/entry-server.ts',
++        build: { ssr: true },
++      },
++      'serve',
++    )
++
++    expect(config.environments.ssr.input).toBeUndefined()
++  })
++
+   test('per-environment input overrides the top-level value', async () => {
+     const config = await resolveConfig(
+       {
+diff --git a/packages/vite/src/node/config.ts b/packages/vite/src/node/config.ts
+index cdf66df7f9588c..0985d25333c8c9 100644
+--- a/packages/vite/src/node/config.ts
++++ b/packages/vite/src/node/config.ts
+@@ -1714,6 +1714,10 @@ export async function resolveConfig(
+     },
+   }
+ 
++  if (isBuild && config.build?.ssr === true) {
++    config.environments.ssr.input ??= config.input
++  }
++
+   for (const name of Object.keys(config.environments)) {
+     config.environments[name] = mergeConfig(
+       name === 'client'

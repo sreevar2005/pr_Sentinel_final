@@ -1,0 +1,13 @@
+kind = "benign"
+title = "docker-compose reads credentials from the environment"
+source = "synthetic look-alike of SEC003 and SEC004"
+
+[[file]]
+path = "docker-compose.yml"
+added = [
+    "  db:",
+    "    image: postgres:16",
+    "    environment:",
+    '      POSTGRES_PASSWORD: "${DB_PASSWORD}"',
+    '      DATABASE_URL: "postgres://app:${DB_PASSWORD}@db:5432/app"',
+]

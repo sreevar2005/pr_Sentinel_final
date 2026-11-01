@@ -1,0 +1,18 @@
+kind = "benign"
+title = "Binary images and fonts added"
+source = "synthetic look-alike of OBF007"
+
+[[file]]
+path = "assets/logo.png"
+status = "added"
+binary = true
+
+[[file]]
+path = "assets/fonts/Inter.woff2"
+status = "added"
+binary = true
+
+[[file]]
+path = "docs/diagram.pdf"
+status = "added"
+binary = true

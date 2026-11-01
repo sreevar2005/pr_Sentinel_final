@@ -1,0 +1,13 @@
+kind = "benign"
+title = "Vendored, minified library with eval and long lines"
+source = "synthetic look-alike of EXE002 and OBF006"
+
+[[file]]
+path = "static/vendor/chart.min.js"
+status = "added"
+added = ["!function(t,e){'object'==typeof exports?module.exports=e():t.Chart=e()}(this,function(){var a=eval;return a})"]
+
+[[file]]
+path = "node_modules/left-pad/index.js"
+status = "added"
+added = ["module.exports = leftPad; function leftPad(str, len, ch) { return eval('str'); }"]

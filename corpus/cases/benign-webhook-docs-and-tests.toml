@@ -1,0 +1,12 @@
+kind = "benign"
+title = "Webhook services mentioned in docs and a test"
+source = "synthetic; checks NET002 is downgraded in docs and tests"
+allow = ["NET002 docs/webhooks.md:2", "NET002 tests/test_notify.py:1"]
+
+[[file]]
+path = "docs/webhooks.md"
+added = ["## Testing webhooks", "Point the URL at https://webhook.site to inspect payloads while developing."]
+
+[[file]]
+path = "tests/test_notify.py"
+added = ['    notifier = Notifier("https://discord.com/api/webhooks/0/test-token")']

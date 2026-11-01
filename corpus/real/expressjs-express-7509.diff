@@ -1,0 +1,35 @@
+diff --git a/lib/response.js b/lib/response.js
+index 0967dda45c3..2ac0d8f34d6 100644
+--- a/lib/response.js
++++ b/lib/response.js
+@@ -488,7 +488,7 @@ res.download = function download (path, filename, options, callback) {
+ /**
+  * Set _Content-Type_ response header with `type` through `mime.contentType()`
+  * when it does not contain "/", or set the Content-Type to `type` otherwise.
+- * When no mapping is found though `mime.contentType()`, the type is set to
++ * When no mapping is found through `mime.contentType()`, the type is set to
+  * "application/octet-stream".
+  *
+  * Examples:
+diff --git a/test/app.router.js b/test/app.router.js
+index 6e7be684e55..f9c4a28b75e 100644
+--- a/test/app.router.js
++++ b/test/app.router.js
+@@ -448,7 +448,7 @@ describe('app.router', function () {
+           .expect('tj', done);
+       })
+ 
+-      it('should pass-though middleware', function (done) {
++      it('should pass-through middleware', function (done) {
+         var app = express();
+ 
+         app.enable('strict routing');
+@@ -468,7 +468,7 @@ describe('app.router', function () {
+           .expect(200, 'tj', done);
+       })
+ 
+-      it('should pass-though mounted middleware', function (done) {
++      it('should pass-through mounted middleware', function (done) {
+         var app = express();
+ 
+         app.enable('strict routing');

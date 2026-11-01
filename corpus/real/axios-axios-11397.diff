@@ -1,0 +1,131 @@
+diff --git a/.github/workflows/bundle-size.yml b/.github/workflows/bundle-size.yml
+index 97723969dc..94d26529ba 100644
+--- a/.github/workflows/bundle-size.yml
++++ b/.github/workflows/bundle-size.yml
+@@ -11,7 +11,7 @@ permissions:
+ 
+ jobs:
+   bundle-size:
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     steps:
+       - name: Checkout repo
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+diff --git a/.github/workflows/e2e.yml b/.github/workflows/e2e.yml
+index bff1a8b535..4a50f34e84 100644
+--- a/.github/workflows/e2e.yml
++++ b/.github/workflows/e2e.yml
+@@ -9,7 +9,7 @@ permissions:
+ jobs:
+   node:
+     name: Node ${{ matrix.node }} e2e
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     strategy:
+       fail-fast: false
+       matrix:
+@@ -39,7 +39,7 @@ jobs:
+ 
+   browser:
+     name: Chromium, Firefox and WebKit e2e
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+@@ -73,7 +73,7 @@ jobs:
+ 
+   runtimes:
+     name: ${{ matrix.runtime }} e2e
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     strategy:
+       fail-fast: false
+       matrix:
+diff --git a/.github/workflows/moderator.yml b/.github/workflows/moderator.yml
+index 18e7903f7e..6de19c63fa 100644
+--- a/.github/workflows/moderator.yml
++++ b/.github/workflows/moderator.yml
+@@ -10,7 +10,7 @@ on:
+ jobs:
+   spam-detection:
+     name: AI Moderator
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     permissions:
+       issues: write
+       pull-requests: write
+diff --git a/.github/workflows/release-branch.yml b/.github/workflows/release-branch.yml
+index 85179c0e7d..f390ba80da 100644
+--- a/.github/workflows/release-branch.yml
++++ b/.github/workflows/release-branch.yml
+@@ -22,7 +22,7 @@ permissions:
+ jobs:
+   build-and-run-vitest:
+     name: Build and run vitest
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     steps:
+       - name: Checkout repo
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+@@ -76,7 +76,7 @@ jobs:
+   bump-version-and-create-pr:
+     name: Bump version and create PR
+     needs: [build-and-run-vitest, e2e]
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     permissions:
+       contents: write
+       pull-requests: write
+diff --git a/.github/workflows/run-ci.yml b/.github/workflows/run-ci.yml
+index 07db20cd91..73ae21a579 100644
+--- a/.github/workflows/run-ci.yml
++++ b/.github/workflows/run-ci.yml
+@@ -14,7 +14,7 @@ concurrency:
+ jobs:
+   build-and-run-vitest:
+     name: Build and run vitest
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     steps:
+       - name: Checkout repo
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+diff --git a/.github/workflows/verify-build-reproducibility.yml b/.github/workflows/verify-build-reproducibility.yml
+index ff52038620..75ce5c0600 100644
+--- a/.github/workflows/verify-build-reproducibility.yml
++++ b/.github/workflows/verify-build-reproducibility.yml
+@@ -17,7 +17,7 @@ permissions:
+ jobs:
+   verify-reproducible-build:
+     name: Two-pass build and diff
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     # Non-blocking until divergence is eliminated. Surfaces regressions in
+     # the build's determinism without gating merges. Remove this line to
+     # promote to a hard gate once the build is byte-identical across runs.
+diff --git a/.github/workflows/zizmor.yml b/.github/workflows/zizmor.yml
+index d03d8e4b56..21d9e6931e 100644
+--- a/.github/workflows/zizmor.yml
++++ b/.github/workflows/zizmor.yml
+@@ -10,7 +10,7 @@ permissions: {}
+ 
+ jobs:
+   zizmor:
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     permissions:
+       security-events: write
+     steps:
+diff --git a/PRE_RELEASE_CHANGELOG.md b/PRE_RELEASE_CHANGELOG.md
+index 4f4c2fa6c2..cef3203ea9 100644
+--- a/PRE_RELEASE_CHANGELOG.md
++++ b/PRE_RELEASE_CHANGELOG.md
+@@ -65,6 +65,8 @@
+ 
+ ## Maintenance
+ 
++- **CI runners:** Switched GitHub Actions jobs from GitHub-hosted `ubuntu-latest` runners to the `namespace-profile-axios` Namespace runner profile. The npm publish job stays on `ubuntu-latest` because npm provenance and trusted publishing require GitHub-hosted runners. CI only; no runtime, public API, or type compatibility changes.
++
+ - **Packaged end-to-end suites:** Replace the mocked compatibility/smoke projects with a top-level `tests/` e2e workspace. Build and pack the current Axios package, verify a checksum manifest, and install it into isolated consumers outside the repository. Exercise real local HTTP/HTTPS/HTTP2 services, proxies, faults, browser applications, CORS/cookies/XSRF, streams, uploads, progress, and cancellation using Playwright's three browser engines and native Node.js/Bun/Deno runners. Retain declaration coverage with compiled installed-package applications and keep every existing unit, source-browser, and artifact test unchanged. Add focused unit regression cases for exceptional cleanup in custom Fetch environments. Record the public issue/PR title/body screening and test inventory with coverage and expansion limits. Canonicalize temporary paths so symlinked temporary directories remain valid, isolate UMD and proxy assertions from earlier consumers, verify actual CONNECT tunnels, and terminate timed-out or interrupted command trees, including nested process groups, with real worker-cleanup regression checks. Allow bounded signal cleanup before forcing termination so interrupted packing cannot leave workers listening. CI and release preparation share the same package across every runtime lane, bootstrap pnpm from a checksum-verified tarball in the e2e jobs, and reference the reusable workflow with GitHub’s self-repository syntax; old module/smoke commands are replaced by `test:e2e` commands. No runtime dependency or package export changes. ([#11364](https://github.com/axios/axios/pull/11364))
+ 
+ - **Repository OSS skills:** Check in the five maintainer-installed `oss-*` workflows under `.agents/skills/` for PR review, advisory review and remediation, vulnerability impact assessment, and release notes. Document discovery, prerequisites (including `jq` and ripgrep), and invocation, and link them from contributor and agent guidance so AI-assisted maintenance uses shared, reviewable instructions. Verify returning contributors with a server-filtered search for PRs merged at or before the base release cutoff, rather than a limited recent-history sample. Remove local-author metadata and verify the skills contain no personal details or machine-specific paths or configuration. Repository submission rules, advisory confidentiality, and action authorization remain authoritative. No runtime, public API, package dependency, or type compatibility changes. ([#11361](https://github.com/axios/axios/pull/11361))

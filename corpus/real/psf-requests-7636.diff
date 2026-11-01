@@ -1,0 +1,38 @@
+diff --git a/.github/workflows/codeql-analysis.yml b/.github/workflows/codeql-analysis.yml
+index b2baa16d91..d7ceaf6bec 100644
+--- a/.github/workflows/codeql-analysis.yml
++++ b/.github/workflows/codeql-analysis.yml
+@@ -46,7 +46,7 @@ jobs:
+ 
+     # Initializes the CodeQL tools for scanning.
+     - name: Initialize CodeQL
+-      uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
++      uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+       with:
+         languages: "python"
+         # If you wish to specify custom queries, you can do so here or in a config file.
+@@ -57,7 +57,7 @@ jobs:
+     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
+     # If this step fails, then you should remove it and run the build manually (see below)
+     - name: Autobuild
+-      uses: github/codeql-action/autobuild@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
++      uses: github/codeql-action/autobuild@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+ 
+     # ℹ️ Command-line programs to run using the OS shell.
+     # 📚 https://git.io/JvXDl
+@@ -71,4 +71,4 @@ jobs:
+     #   make release
+ 
+     - name: Perform CodeQL Analysis
+-      uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
++      uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+diff --git a/.github/workflows/zizmor.yml b/.github/workflows/zizmor.yml
+index bee888d514..59dce008f1 100644
+--- a/.github/workflows/zizmor.yml
++++ b/.github/workflows/zizmor.yml
+@@ -21,4 +21,4 @@ jobs:
+           persist-credentials: false
+ 
+       - name: Run zizmor 🌈
+-        uses: zizmorcore/zizmor-action@6599ee8b7a49aef6a770f63d261d214911a7ce02 # v0.6.0
++        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1

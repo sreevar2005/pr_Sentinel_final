@@ -1,0 +1,90 @@
+diff --git a/packages/vite/src/node/server/__tests__/pluginContainer.spec.ts b/packages/vite/src/node/server/__tests__/pluginContainer.spec.ts
+index 9dea94a777b491..249e0c7b5787bd 100644
+--- a/packages/vite/src/node/server/__tests__/pluginContainer.spec.ts
++++ b/packages/vite/src/node/server/__tests__/pluginContainer.spec.ts
+@@ -1,6 +1,7 @@
+ import { stripVTControlCharacters } from 'node:util'
+ import MagicString from 'magic-string'
+ import { describe, expect, it, vi } from 'vitest'
++import { promiseWithResolvers } from '../../../shared/utils'
+ import type { UserConfig } from '../../config'
+ import { resolveConfig } from '../../config'
+ import { createLogger } from '../../logger'
+@@ -479,6 +480,45 @@ describe('plugin container', () => {
+   })
+ 
+   describe('closeBundle', () => {
++    for (const rejectClose of [false, true]) {
++      it(`waits for an overlapping close when closeBundle rejects: ${rejectClose}`, async () => {
++        const finish = promiseWithResolvers<void>()
++        const error = new Error('closeBundle failed')
++        const closeBundle = vi.fn(() => finish.promise)
++        const environment = await getDevEnvironment({
++          plugins: [
++            {
++              name: 'delayed-close-bundle',
++              closeBundle,
++            },
++          ],
++        })
++
++        const closes = [
++          environment.pluginContainer.close(),
++          environment.pluginContainer.close(),
++        ]
++        const results = Promise.allSettled(closes)
++        try {
++          await expect(
++            Promise.race([closes[1], Promise.resolve('pending')]),
++          ).resolves.toBe('pending')
++        } finally {
++          if (rejectClose) finish.reject(error)
++          else finish.resolve()
++          await results
++        }
++        const expected = rejectClose
++          ? { status: 'rejected', reason: error }
++          : { status: 'fulfilled', value: undefined }
++        expect(await results).toStrictEqual([expected, expected])
++        await expect(
++          environment.pluginContainer.close(),
++        ).resolves.toBeUndefined()
++        expect(closeBundle).toHaveBeenCalledOnce()
++      })
++    }
++
+     it('passes buildEnd errors to closeBundle', async () => {
+       const buildEndError = new Error('buildEnd failed')
+       let closeBundleError: Error | undefined
+diff --git a/packages/vite/src/node/server/pluginContainer.ts b/packages/vite/src/node/server/pluginContainer.ts
+index 3a383edea60054..32420e6e904729 100644
+--- a/packages/vite/src/node/server/pluginContainer.ts
++++ b/packages/vite/src/node/server/pluginContainer.ts
+@@ -186,6 +186,7 @@ class EnvironmentPluginContainer<Env extends Environment = Environment> {
+   private _started = false
+   private _buildStartPromise: Promise<void> | undefined
+   private _closed = false
++  private _closePromise: Promise<void> | undefined
+ 
+   /**
+    * @internal use `createEnvironmentPluginContainer` instead
+@@ -634,8 +635,18 @@ class EnvironmentPluginContainer<Env extends Environment = Environment> {
+   }
+ 
+   async close(): Promise<void> {
+-    if (this._closed) return
++    if (this._closed) return this._closePromise
+     this._closed = true
++    this._closePromise = this._close()
++    try {
++      await this._closePromise
++    } finally {
++      // Once cleanup settles, repeated closes remain a no-op, including after errors.
++      this._closePromise = undefined
++    }
++  }
++
++  private async _close(): Promise<void> {
+     await Promise.allSettled(this._processesing)
+     const config = this.environment.getTopLevelConfig()
+     let buildEndError: Error | undefined

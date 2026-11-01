@@ -1,0 +1,944 @@
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png b/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png
+deleted file mode 120000
+index 3f1cd17ce2eb..000000000000
+--- a/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png
++++ /dev/null
+@@ -1 +0,0 @@
+-../../djangodocs/static/docicons-behindscenes.png
+\ No newline at end of file
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png b/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png
+new file mode 100644
+index 000000000000..4371103c4217
+Binary files /dev/null and b/docs/_theme/djangodocs-epub/static/docicons-behindscenes.png differ
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-note.png b/docs/_theme/djangodocs-epub/static/docicons-note.png
+deleted file mode 120000
+index b8193a35d7a2..000000000000
+--- a/docs/_theme/djangodocs-epub/static/docicons-note.png
++++ /dev/null
+@@ -1 +0,0 @@
+-../../djangodocs/static/docicons-note.png
+\ No newline at end of file
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-note.png b/docs/_theme/djangodocs-epub/static/docicons-note.png
+new file mode 100644
+index 000000000000..b84901967838
+Binary files /dev/null and b/docs/_theme/djangodocs-epub/static/docicons-note.png differ
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-philosophy.png b/docs/_theme/djangodocs-epub/static/docicons-philosophy.png
+deleted file mode 120000
+index 26d9a0c50243..000000000000
+--- a/docs/_theme/djangodocs-epub/static/docicons-philosophy.png
++++ /dev/null
+@@ -1 +0,0 @@
+-../../djangodocs/static/docicons-philosophy.png
+\ No newline at end of file
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-philosophy.png b/docs/_theme/djangodocs-epub/static/docicons-philosophy.png
+new file mode 100644
+index 000000000000..a864f58f5574
+Binary files /dev/null and b/docs/_theme/djangodocs-epub/static/docicons-philosophy.png differ
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-warning.png b/docs/_theme/djangodocs-epub/static/docicons-warning.png
+deleted file mode 120000
+index 455195f35f12..000000000000
+--- a/docs/_theme/djangodocs-epub/static/docicons-warning.png
++++ /dev/null
+@@ -1 +0,0 @@
+-../../djangodocs/static/docicons-warning.png
+\ No newline at end of file
+diff --git a/docs/_theme/djangodocs-epub/static/docicons-warning.png b/docs/_theme/djangodocs-epub/static/docicons-warning.png
+new file mode 100644
+index 000000000000..083704d50c6d
+Binary files /dev/null and b/docs/_theme/djangodocs-epub/static/docicons-warning.png differ
+diff --git a/docs/_theme/djangodocs/genindex.html b/docs/_theme/djangodocs/genindex.html
+deleted file mode 100644
+index 032b70df8fd3..000000000000
+--- a/docs/_theme/djangodocs/genindex.html
++++ /dev/null
+@@ -1,4 +0,0 @@
+-{% extends "basic/genindex.html" %}
+-
+-{% block bodyclass %}{% endblock %}
+-{% block sidebarwrapper %}{% endblock %}
+diff --git a/docs/_theme/djangodocs/layout.html b/docs/_theme/djangodocs/layout.html
+deleted file mode 100644
+index 086366276bb9..000000000000
+--- a/docs/_theme/djangodocs/layout.html
++++ /dev/null
+@@ -1,87 +0,0 @@
+-{% extends "basic/layout.html" %}
+-
+-{%- macro secondnav() %}
+-  {%- if prev %}
+-    &laquo; <a href="{{ prev.link|e }}" title="{{ prev.title|e }}">previous</a>
+-    {{ reldelim2 }}
+-  {%- endif %}
+-  {%- if parents %}
+-    <a href="{{ parents.0.link|e }}" title="{{ parents.0.title|e }}" accesskey="U">up</a>
+-  {%- else %}
+-    <a title="{{ docstitle }}" href="{{ pathto('index') }}" accesskey="U">up</a>
+-  {%- endif %}
+-  {%- if next %}
+-  {{ reldelim2 }}
+-    <a href="{{ next.link|e }}" title="{{ next.title|e }}">next</a> &raquo;
+-  {%- endif %}
+-{%- endmacro %}
+-
+-{% block document %}
+-  <div id="custom-doc" class="{% block bodyclass %}{{ 'yui-t6' if pagename != 'index' else '' }}{% endblock %}">
+-    <div id="hd">
+-      <h1><a href="{{ pathto('index') }}">{{ docstitle }}</a></h1>
+-      <div id="global-nav">
+-        <a title="Home page" href="{{ pathto('index') }}">Home</a> {{ reldelim2 }}
+-        <a title="Table of contents" href="{{ pathto('contents') }}">Table of contents</a> {{ reldelim2 }}
+-        <a title="Global index" href="{{ pathto('genindex') }}">Index</a> {{ reldelim2 }}
+-        <a title="Module index" href="{{ pathto('py-modindex') }}">Modules</a>
+-      </div>
+-      <div class="nav">{{ secondnav() }}</div>
+-    </div>
+-
+-    <div id="bd">
+-      <div id="yui-main">
+-        <div class="yui-b">
+-          <div class="yui-g" id="{{ pagename|replace('/', '-') }}">
+-            {% block body %}{% endblock %}
+-          </div>
+-        </div>
+-      </div>
+-      {% block sidebarwrapper %}
+-        {% if pagename != 'index' %}
+-          <div class="yui-b" id="sidebar">
+-            {{ sidebar() }}
+-            {%- if last_updated %}
+-              <h3>Last update:</h3>
+-              <p class="topless">{{ last_updated }}</p>
+-            {%- endif %}
+-          </div>
+-        {% endif %}
+-      {% endblock %}
+-    </div>
+-
+-    <div id="ft">
+-      <div class="nav">{{ secondnav() }}</div>
+-    </div>
+-  </div>
+-{% endblock %}
+-
+-{% block sidebarrel %}
+-  <h3>Browse</h3>
+-  <ul>
+-    {% if prev %}
+-      <li>Prev: <a href="{{ prev.link }}">{{ prev.title }}</a></li>
+-    {% endif %}
+-    {% if next %}
+-      <li>Next: <a href="{{ next.link }}">{{ next.title }}</a></li>
+-    {% endif %}
+-  </ul>
+-  <h3>You are here:</h3>
+-  <ul>
+-      <li>
+-        <a href="{{ pathto('index') }}">{{ docstitle }}</a>
+-        {% for p in parents %}
+-          <ul><li><a href="{{ p.link }}">{{ p.title }}</a>
+-        {% endfor %}
+-        <ul><li>{{ title }}</li></ul>
+-        {% for p in parents %}</li></ul>{% endfor %}
+-      </li>
+-  </ul>
+-{% endblock %}
+-
+-{# Empty some default blocks out #}
+-{% block relbar1 %}{% endblock %}
+-{% block relbar2 %}{% endblock %}
+-{% block sidebar1 %}{% endblock %}
+-{% block sidebar2 %}{% endblock %}
+-{% block footer %}{% endblock %}
+diff --git a/docs/_theme/djangodocs/modindex.html b/docs/_theme/djangodocs/modindex.html
+deleted file mode 100644
+index ca5a2d460ca5..000000000000
+--- a/docs/_theme/djangodocs/modindex.html
++++ /dev/null
+@@ -1,3 +0,0 @@
+-{% extends "basic/modindex.html" %}
+-{% block bodyclass %}{% endblock %}
+-{% block sidebarwrapper %}{% endblock %}
+diff --git a/docs/_theme/djangodocs/navbar-title.html b/docs/_theme/djangodocs/navbar-title.html
+new file mode 100644
+index 000000000000..9135e0add5bb
+--- /dev/null
++++ b/docs/_theme/djangodocs/navbar-title.html
+@@ -0,0 +1,2 @@
++{# Display the full title of the documentation (with long version number). #}
++<div class="djangodocs-navbar-title">{{ docstitle }}</div>
+diff --git a/docs/_theme/djangodocs/search.html b/docs/_theme/djangodocs/search.html
+deleted file mode 100644
+index 4fdc7f6a84a2..000000000000
+--- a/docs/_theme/djangodocs/search.html
++++ /dev/null
+@@ -1,3 +0,0 @@
+-{% extends "basic/search.html" %}
+-{% block bodyclass %}{% endblock %}
+-{% block sidebarwrapper %}{% endblock %}
+diff --git a/docs/_theme/djangodocs/sidebar-nav-full.html b/docs/_theme/djangodocs/sidebar-nav-full.html
+new file mode 100644
+index 000000000000..df9d7084310e
+--- /dev/null
++++ b/docs/_theme/djangodocs/sidebar-nav-full.html
+@@ -0,0 +1,34 @@
++{# Adapted from https://github.com/executablebooks/sphinx-book-theme/blob/main/src/sphinx_book_theme/theme/sphinx_book_theme/components/sbt-sidebar-nav.html #}
++<nav class="bd-links bd-docs-nav" aria-label="Main">
++    <div class="bd-toc-item navbar-nav active">
++        {# Ref: https://github.com/pydata/pydata-sphinx-theme/blob/9fd11dffe6faa2a6070e87191ef1e8f51b324a9f/src/pydata_sphinx_theme/toctree.py#L337 #}
++        {{- generate_toctree_html(
++            kind="sidebar",
++            startdepth=0,
++            maxdepth=theme_navigation_depth | int,
++            show_nav_level=theme_show_nav_level | int,
++            collapse=False,
++            includehidden=True,
++            titles_only=True,
++        ) }}
++
++        <hr>
++        <ul class="nav bd-sidenav bd-sidenav__home-link">
++            <li class="toctree-l1{% if pagename == root_doc %} current active{% endif %}">
++                <a class="reference internal" href="{{ pathto(root_doc) }}">
++                    {{ _('Table of Contents') }}
++                </a>
++            </li>
++            <li class="toctree-l1{% if pagename == 'genindex' %} current active{% endif %}">
++              <a class="reference internal"
++                 href="{{ pathto('genindex') }}"
++                 accesskey="I">{{ _('General Index') }}</a>
++            </li>
++            <li class="toctree-l1{% if pagename == 'py-modindex' %} current active{% endif %}">
++              <a class="reference internal" href="{{ pathto('py-modindex') }}">
++                {{ _('Python Module Index') }}
++              </a>
++            </li>
++        </ul>
++    </div>
++</nav>
+diff --git a/docs/_theme/djangodocs/static/default.css b/docs/_theme/djangodocs/static/default.css
+index 8f1e38f9e7d2..e0213cf7d5a2 100644
+--- a/docs/_theme/djangodocs/static/default.css
++++ b/docs/_theme/djangodocs/static/default.css
+@@ -1,3 +1,37 @@
+-@import url(reset-fonts-grids.css);
+-@import url(djangodocs.css);
+-@import url(homepage.css);
++/* Style djangodocs console tabs using pydata-sphinx-theme design tokens. This
++ * may be loaded before console-tabs.css, so must have higher specificity to
++ * override default values from there.
++ */
++html .console-block {
++    --tab-gap: 0.375rem;
++    --tab-padding-block: 0.25em;
++    --tab-padding-inline: 0.5em;
++    --tab-label-size: var(--pst-font-size-milli);
++    --tab-label-color: var(--pst-color-text-muted);
++    --tab-border-radius: var(--bs-border-radius);
++    --tab-border-color: var(--pst-color-border-muted);
++    --tab-active-label-color: var(--pst-color-text-base);
++    --tab-active-border-color: var(--pst-color-border);
++    --tab-active-highlight-color: var(--pst-color-primary);
++    --tab-focus-outline: var(--bs-focus-ring-width) solid
++        var(--bs-focus-ring-color);
++
++    /* Adapt pydata-sphinx-theme's code blocks for console tabs. */
++    section {
++        div.highlight,
++        div.highlight-console,
++        div.highlight-doscon,
++        pre {
++            margin-block-start: 0;
++            border-start-end-radius: 0;
++        }
++    }
++}
++
++/* Keep Read the Docs' preview widgets from covering header and footer. */
++body:has(readthedocs-filetreediff:not([hidden])) .bd-header {
++    padding-block-start: 2rem;
++}
++body:has(readthedocs-flyout:not([hidden])) .bd-footer {
++    padding-block-end: 6rem;
++}
+diff --git a/docs/_theme/djangodocs/static/djangodocs.css b/docs/_theme/djangodocs/static/djangodocs.css
+deleted file mode 100644
+index 0abaed32aa44..000000000000
+--- a/docs/_theme/djangodocs/static/djangodocs.css
++++ /dev/null
+@@ -1,529 +0,0 @@
+-/*** setup ***/
+-html {
+-    background: #092e20;
+-}
+-body {
+-    font:
+-        12px / 1.5 Verdana,
+-        sans-serif;
+-    background: #092e20;
+-    color: white;
+-}
+-#custom-doc {
+-    width: 76.54em;
+-    min-width: 995px;
+-    max-width: 100em;
+-    margin: auto;
+-    text-align: left;
+-    padding-top: 16px;
+-    margin-top: 0;
+-}
+-#hd {
+-    padding: 4px 0 12px 0;
+-}
+-#bd {
+-    background: #234f32;
+-}
+-#ft {
+-    color: #487858;
+-    font-size: 90%;
+-    padding-bottom: 2em;
+-}
+-
+-/*** links ***/
+-a {
+-    text-decoration: none;
+-}
+-a img {
+-    border: none;
+-}
+-a:link,
+-a:visited {
+-    color: #ffc757;
+-}
+-#bd a:link,
+-#bd a:visited {
+-    color: #ab5603;
+-    text-decoration: underline;
+-}
+-#bd #sidebar a:link,
+-#bd #sidebar a:visited {
+-    color: #ffc757;
+-    text-decoration: none;
+-}
+-a:hover {
+-    color: #ffe761;
+-}
+-#bd a:hover {
+-    background-color: #e0ffb8;
+-    color: #234f32;
+-    text-decoration: none;
+-}
+-#bd #sidebar a:hover {
+-    color: #ffe761;
+-    background: none;
+-}
+-h2 a,
+-h3 a,
+-h4 a {
+-    text-decoration: none !important;
+-}
+-a.reference em {
+-    font-style: normal;
+-}
+-
+-/*** sidebar ***/
+-#sidebar div.sphinxsidebarwrapper {
+-    font-size: 92%;
+-    margin-right: 14px;
+-}
+-#sidebar h3,
+-#sidebar h4 {
+-    color: white;
+-    font-size: 125%;
+-}
+-#sidebar a {
+-    color: white;
+-}
+-#sidebar ul ul {
+-    margin-top: 0;
+-    margin-bottom: 0;
+-}
+-#sidebar li {
+-    margin-top: 0.2em;
+-    margin-bottom: 0.2em;
+-}
+-
+-/*** nav ***/
+-div.nav {
+-    margin: 0;
+-    font-size: 11px;
+-    text-align: right;
+-    color: #487858;
+-}
+-#hd div.nav {
+-    margin-top: -27px;
+-}
+-#ft div.nav {
+-    margin-bottom: -18px;
+-}
+-#hd h1 a {
+-    color: white;
+-}
+-#global-nav {
+-    position: absolute;
+-    top: 5px;
+-    margin-left: -5px;
+-    padding: 7px 0;
+-    color: #263e2b;
+-}
+-#global-nav a:link,
+-#global-nav a:visited {
+-    color: #487858;
+-}
+-#global-nav a {
+-    padding: 0 4px;
+-}
+-#global-nav a.about {
+-    padding-left: 0;
+-}
+-#global-nav:hover {
+-    color: #fff;
+-}
+-#global-nav:hover a:link,
+-#global-nav:hover a:visited {
+-    color: #ffc757;
+-}
+-
+-/*** content ***/
+-#yui-main div.yui-b {
+-    position: relative;
+-}
+-#yui-main div.yui-b {
+-    margin: 0 0 0 20px;
+-    background: white;
+-    color: black;
+-    padding: 0.3em 2em 1em 2em;
+-}
+-
+-/*** basic styles ***/
+-dd {
+-    margin-left: 15px;
+-}
+-h1,
+-h2,
+-h3,
+-h4,
+-h5,
+-h6 {
+-    margin-top: 1em;
+-    font-family: "Trebuchet MS", sans-serif;
+-    font-weight: normal;
+-}
+-h1 {
+-    font-size: 218%;
+-    margin-top: 0.6em;
+-    margin-bottom: 0.4em;
+-    line-height: 1.1em;
+-}
+-h2 {
+-    font-size: 175%;
+-    margin-bottom: 0.6em;
+-    line-height: 1.2em;
+-    color: #092e20;
+-}
+-h3 {
+-    font-size: 150%;
+-    font-weight: bold;
+-    margin-bottom: 0.2em;
+-    color: #487858;
+-}
+-h4 {
+-    font-size: 125%;
+-    font-weight: bold;
+-    margin-top: 1.5em;
+-    margin-bottom: 3px;
+-}
+-h5 {
+-    font-size: 110%;
+-    font-weight: bold;
+-    margin-top: 1em;
+-    margin-bottom: 3px;
+-}
+-h6 {
+-    font-weight: bold;
+-    margin-bottom: 3px;
+-}
+-div.figure {
+-    text-align: center;
+-}
+-div.figure p.caption {
+-    font-size: 1em;
+-    margin-top: 0;
+-    margin-bottom: 1.5em;
+-    color: #555;
+-}
+-hr {
+-    color: #ccc;
+-    background-color: #ccc;
+-    height: 1px;
+-    border: 0;
+-}
+-p,
+-ul,
+-dl {
+-    margin-top: 0.6em;
+-    margin-bottom: 1em;
+-    padding-bottom: 0.1em;
+-}
+-#yui-main div.yui-b img {
+-    max-width: 50em;
+-    margin-left: auto;
+-    margin-right: auto;
+-    display: block;
+-}
+-caption {
+-    font-size: 1em;
+-    font-weight: bold;
+-    margin-top: 0.5em;
+-    margin-bottom: 0.5em;
+-    margin-left: 2px;
+-    text-align: center;
+-}
+-blockquote {
+-    padding: 0 1em;
+-    margin: 1em 0;
+-    font:
+-        125% / 1.2em "Trebuchet MS",
+-        sans-serif;
+-    color: #234f32;
+-    border-left: 2px solid #94da3a;
+-}
+-strong {
+-    font-weight: bold;
+-}
+-em {
+-    font-style: italic;
+-}
+-ins {
+-    font-weight: bold;
+-    text-decoration: none;
+-}
+-
+-/*** lists ***/
+-ul {
+-    padding-left: 30px;
+-}
+-ol {
+-    padding-left: 30px;
+-}
+-ol.arabic li {
+-    list-style-type: decimal;
+-}
+-ul li {
+-    list-style-type: square;
+-    margin-bottom: 0.4em;
+-}
+-ul ul li {
+-    list-style-type: disc;
+-}
+-ul ul ul li {
+-    list-style-type: circle;
+-}
+-ol li {
+-    margin-bottom: 0.4em;
+-}
+-ul ul {
+-    padding-left: 1.2em;
+-}
+-ul ul ul {
+-    padding-left: 1em;
+-}
+-ul.linklist,
+-ul.toc {
+-    padding-left: 0;
+-}
+-ul.toc ul {
+-    margin-left: 0.6em;
+-}
+-ul.toc ul li {
+-    list-style-type: square;
+-}
+-ul.toc ul ul li {
+-    list-style-type: disc;
+-}
+-ul.linklist li,
+-ul.toc li {
+-    list-style-type: none;
+-}
+-dt {
+-    font-weight: bold;
+-    margin-top: 0.5em;
+-    font-size: 1.1em;
+-}
+-dd {
+-    margin-bottom: 0.8em;
+-}
+-ol.toc {
+-    margin-bottom: 2em;
+-}
+-ol.toc li {
+-    font-size: 125%;
+-    padding: 0.5em;
+-    line-height: 1.2em;
+-    clear: right;
+-}
+-ol.toc li.b {
+-    background-color: #e0ffb8;
+-}
+-ol.toc li a:hover {
+-    background-color: transparent !important;
+-    text-decoration: underline !important;
+-}
+-ol.toc span.release-date {
+-    color: #487858;
+-    float: right;
+-    font-size: 85%;
+-    padding-right: 0.5em;
+-}
+-ol.toc span.comment-count {
+-    font-size: 75%;
+-    color: #999;
+-}
+-
+-/*** tables ***/
+-table {
+-    color: #000;
+-    margin-bottom: 1em;
+-    width: 100%;
+-}
+-table.docutils td p {
+-    margin-top: 0;
+-    margin-bottom: 0.5em;
+-}
+-table.docutils td,
+-table.docutils th {
+-    border-bottom: 1px solid #dfdfdf;
+-    padding: 4px 2px;
+-}
+-table.docutils thead th {
+-    border-bottom: 2px solid #dfdfdf;
+-    text-align: left;
+-    font-weight: bold;
+-    white-space: nowrap;
+-}
+-table.docutils thead th p {
+-    margin: 0;
+-    padding: 0;
+-}
+-table.docutils {
+-    border-collapse: collapse;
+-}
+-
+-/*** code blocks ***/
+-.literal {
+-    color: #234f32;
+-    white-space: nowrap;
+-}
+-dt > tt.literal {
+-    white-space: normal;
+-}
+-#sidebar .literal {
+-    color: white;
+-    background: transparent;
+-    font-size: 11px;
+-}
+-h4 .literal {
+-    color: #234f32;
+-    font-size: 13px;
+-}
+-pre {
+-    font-size: small;
+-    background: #e0ffb8;
+-    border: 1px solid #94da3a;
+-    border-width: 1px 0;
+-    margin: 1em 0;
+-    padding: 0.3em 0.4em;
+-    overflow: hidden;
+-    line-height: 1.3em;
+-    white-space: pre-wrap;
+-}
+-dt .literal,
+-table .literal {
+-    background: none;
+-}
+-#bd a.reference {
+-    text-decoration: none;
+-}
+-#bd a.reference tt.literal {
+-    border-bottom: 1px #234f32 dotted;
+-}
+-div.code-block-caption {
+-    color: white;
+-    background-color: #234f32;
+-    margin: 0;
+-    padding: 2px 5px;
+-    width: 100%;
+-    font-family: monospace;
+-    font-size: small;
+-    line-height: 1.3em;
+-}
+-div.code-block-caption .literal {
+-    color: white;
+-}
+-div.literal-block-wrapper pre {
+-    margin-top: 0;
+-}
+-
+-/* Restore colors of pygments hyperlinked code */
+-#bd .highlight .k a:link,
+-#bd .highlight .k a:visited {
+-    color: #000000;
+-    text-decoration: none;
+-    border-bottom: 1px dotted #000000;
+-}
+-#bd .highlight .nf a:link,
+-#bd .highlight .nf a:visited {
+-    color: #990000;
+-    text-decoration: none;
+-    border-bottom: 1px dotted #990000;
+-}
+-
+-/*** notes & admonitions ***/
+-.note,
+-.admonition {
+-    padding: 0.8em 1em 0.8em;
+-    margin: 1em 0;
+-    border: 1px solid #94da3a;
+-}
+-.admonition-title {
+-    font-weight: bold;
+-    margin-top: 0 !important;
+-    margin-bottom: 0 !important;
+-}
+-.admonition .last {
+-    margin-bottom: 0 !important;
+-}
+-.note,
+-.admonition {
+-    padding-left: 65px;
+-    background: url(docicons-note.png) 0.8em 0.8em no-repeat;
+-}
+-div.admonition-philosophy {
+-    padding-left: 65px;
+-    background: url(docicons-philosophy.png) 0.8em 0.8em no-repeat;
+-}
+-div.admonition-behind-the-scenes {
+-    padding-left: 65px;
+-    background: url(docicons-behindscenes.png) 0.8em 0.8em no-repeat;
+-}
+-.admonition.warning {
+-    background: url(docicons-warning.png) 0.8em 0.8em no-repeat;
+-    border: 1px solid #ffc83c;
+-}
+-
+-/*** versionadded/changes ***/
+-span.versionmodified {
+-    font-weight: bold;
+-}
+-div.versionadded,
+-div.versionchanged,
+-div.versionremoved,
+-div.deprecated {
+-    color: #555;
+-}
+-
+-/*** p-links ***/
+-a.headerlink {
+-    color: #c60f0f;
+-    font-size: 0.8em;
+-    margin-left: 4px;
+-    opacity: 0;
+-    text-decoration: none;
+-}
+-h1:hover > a.headerlink,
+-h2:hover > a.headerlink,
+-h3:hover > a.headerlink,
+-h4:hover > a.headerlink,
+-h5:hover > a.headerlink,
+-h6:hover > a.headerlink,
+-dt:hover > a.headerlink {
+-    opacity: 1;
+-}
+-a.headerlink:focus {
+-    opacity: 1;
+-}
+-
+-/*** index ***/
+-table.indextable td {
+-    text-align: left;
+-    vertical-align: top;
+-}
+-table.indextable dl,
+-table.indextable dd {
+-    margin-top: 0;
+-    margin-bottom: 0;
+-}
+-table.indextable tr.pcap {
+-    height: 10px;
+-}
+-table.indextable tr.cap {
+-    margin-top: 10px;
+-    background-color: #f2f2f2;
+-}
+-
+-/*** page-specific overrides ***/
+-div#contents ul {
+-    margin-bottom: 0;
+-}
+-div#contents ul li {
+-    margin-bottom: 0;
+-}
+-div#contents ul ul li {
+-    margin-top: 0.3em;
+-}
+-
+-/*** IE hacks ***/
+-* pre {
+-    width: 100%;
+-}
+diff --git a/docs/_theme/djangodocs/static/docicons-behindscenes.png b/docs/_theme/djangodocs/static/docicons-behindscenes.png
+deleted file mode 100644
+index 4371103c4217..000000000000
+Binary files a/docs/_theme/djangodocs/static/docicons-behindscenes.png and /dev/null differ
+diff --git a/docs/_theme/djangodocs/static/docicons-note.png b/docs/_theme/djangodocs/static/docicons-note.png
+deleted file mode 100644
+index b84901967838..000000000000
+Binary files a/docs/_theme/djangodocs/static/docicons-note.png and /dev/null differ
+diff --git a/docs/_theme/djangodocs/static/docicons-philosophy.png b/docs/_theme/djangodocs/static/docicons-philosophy.png
+deleted file mode 100644
+index a864f58f5574..000000000000
+Binary files a/docs/_theme/djangodocs/static/docicons-philosophy.png and /dev/null differ
+diff --git a/docs/_theme/djangodocs/static/docicons-warning.png b/docs/_theme/djangodocs/static/docicons-warning.png
+deleted file mode 100644
+index 083704d50c6d..000000000000
+Binary files a/docs/_theme/djangodocs/static/docicons-warning.png and /dev/null differ
+diff --git a/docs/_theme/djangodocs/static/homepage.css b/docs/_theme/djangodocs/static/homepage.css
+deleted file mode 100644
+index 1e393ba43da7..000000000000
+--- a/docs/_theme/djangodocs/static/homepage.css
++++ /dev/null
+@@ -1,48 +0,0 @@
+-#index p.rubric {
+-    font-size: 150%;
+-    font-weight: normal;
+-    margin-bottom: 0.2em;
+-    color: #487858;
+-}
+-
+-#index div.section dt {
+-    font-weight: normal;
+-}
+-
+-#index #s-getting-help {
+-    float: right;
+-    width: 35em;
+-    background: #e1ece2;
+-    padding: 1em;
+-    margin: 2em 0 2em 2em;
+-}
+-#index #s-getting-help h2 {
+-    margin: 0;
+-}
+-
+-#index #s-django-documentation div.section div.section h3 {
+-    margin: 0;
+-}
+-#index #s-django-documentation div.section div.section {
+-    background: #e1ece2;
+-    padding: 1em;
+-    margin: 2em 0 2em 40.3em;
+-}
+-#index #s-django-documentation div.section div.section a.reference {
+-    white-space: nowrap;
+-}
+-
+-#index #s-using-django dl,
+-#index #s-add-on-contrib-applications dl,
+-#index #s-solving-specific-problems dl,
+-#index #s-reference dl {
+-    float: left;
+-    width: 41em;
+-}
+-
+-#index #s-add-on-contrib-applications,
+-#index #s-solving-specific-problems,
+-#index #s-reference,
+-#index #s-and-all-the-rest {
+-    clear: left;
+-}
+diff --git a/docs/_theme/djangodocs/static/reset-fonts-grids.css b/docs/_theme/djangodocs/static/reset-fonts-grids.css
+deleted file mode 100644
+index f5238d7c91d6..000000000000
+--- a/docs/_theme/djangodocs/static/reset-fonts-grids.css
++++ /dev/null
+@@ -1,8 +0,0 @@
+-/*
+-Copyright (c) 2008, Yahoo! Inc. All rights reserved.
+-Code licensed under the BSD License:
+-http://developer.yahoo.net/yui/license.txt
+-version: 2.5.1
+-*/
+-html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym {border:0;font-variant:normal;}sup {vertical-align:text-top;}sub {vertical-align:text-bottom;}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;}input,textarea,select{*font-size:100%;}legend{color:#000;}body {font:13px/1.231 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small;}table {font-size:inherit;font:100%;}pre,code,kbd,samp,tt{font-family:monospace;*font-size:108%;line-height:100%;}
+-body{text-align:center;}#ft{clear:both;}#doc,#doc2,#doc3,#doc4,.yui-t1,.yui-t2,.yui-t3,.yui-t4,.yui-t5,.yui-t6,.yui-t7{margin:auto;text-align:left;width:57.69em;*width:56.25em;min-width:750px;}#doc2{width:73.076em;*width:71.25em;}#doc3{margin:auto 10px;width:auto;}#doc4{width:74.923em;*width:73.05em;}.yui-b{position:relative;}.yui-b{_position:static;}#yui-main .yui-b{position:static;}#yui-main{width:100%;}.yui-t1 #yui-main,.yui-t2 #yui-main,.yui-t3 #yui-main{float:right;margin-left:-25em;}.yui-t4 #yui-main,.yui-t5 #yui-main,.yui-t6 #yui-main{float:left;margin-right:-25em;}.yui-t1 .yui-b{float:left;width:12.30769em;*width:12.00em;}.yui-t1 #yui-main .yui-b{margin-left:13.30769em;*margin-left:13.05em;}.yui-t2 .yui-b{float:left;width:13.8461em;*width:13.50em;}.yui-t2 #yui-main .yui-b{margin-left:14.8461em;*margin-left:14.55em;}.yui-t3 .yui-b{float:left;width:23.0769em;*width:22.50em;}.yui-t3 #yui-main .yui-b{margin-left:24.0769em;*margin-left:23.62em;}.yui-t4 .yui-b{float:right;width:13.8456em;*width:13.50em;}.yui-t4 #yui-main .yui-b{margin-right:14.8456em;*margin-right:14.55em;}.yui-t5 .yui-b{float:right;width:18.4615em;*width:18.00em;}.yui-t5 #yui-main .yui-b{margin-right:19.4615em;*margin-right:19.125em;}.yui-t6 .yui-b{float:right;width:23.0769em;*width:22.50em;}.yui-t6 #yui-main .yui-b{margin-right:24.0769em;*margin-right:23.62em;}.yui-t7 #yui-main .yui-b{display:block;margin:0 0 1em 0;}#yui-main .yui-b{float:none;width:auto;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf,.yui-gc .yui-u,.yui-gd .yui-g,.yui-g .yui-gc .yui-u,.yui-ge .yui-u,.yui-ge .yui-g,.yui-gf .yui-g,.yui-gf .yui-u{float:right;}.yui-g div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first,.yui-ge div.first,.yui-gf div.first,.yui-g .yui-gc div.first,.yui-g .yui-ge div.first,.yui-gc div.first div.first{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf{width:49.1%;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{width:32%;margin-left:1.99%;}.yui-gb .yui-u{*margin-left:1.9%;*width:31.9%;}.yui-gc div.first,.yui-gd .yui-u{width:66%;}.yui-gd div.first{width:32%;}.yui-ge div.first,.yui-gf .yui-u{width:74.2%;}.yui-ge .yui-u,.yui-gf div.first{width:24%;}.yui-g .yui-gb div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first{margin-left:0;}.yui-g .yui-g .yui-u,.yui-gb .yui-g .yui-u,.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u,.yui-ge .yui-g .yui-u,.yui-gf .yui-g .yui-u{width:49%;*width:48.1%;*margin-left:0;}.yui-g .yui-gb div.first,.yui-gb .yui-gb div.first{*margin-right:0;*width:32%;_width:31.7%;}.yui-g .yui-gc div.first,.yui-gd .yui-g{width:66%;}.yui-gb .yui-g div.first{*margin-right:4%;_margin-right:1.3%;}.yui-gb .yui-gc div.first,.yui-gb .yui-gd div.first{*margin-right:0;}.yui-gb .yui-gb .yui-u,.yui-gb .yui-gc .yui-u{*margin-left:1.8%;_margin-left:4%;}.yui-g .yui-gb .yui-u{_margin-left:1.0%;}.yui-gb .yui-gd .yui-u{*width:66%;_width:61.2%;}.yui-gb .yui-gd div.first{*width:31%;_width:29.5%;}.yui-g .yui-gc .yui-u,.yui-gb .yui-gc .yui-u{width:32%;_float:right;margin-right:0;_margin-left:0;}.yui-gb .yui-gc div.first{width:66%;*float:left;*margin-left:0;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf .yui-u{margin:0;}.yui-gb .yui-gb .yui-u{_margin-left:.7%;}.yui-gb .yui-g div.first,.yui-gb .yui-gb div.first{*margin-left:0;}.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u{*width:48.1%;*margin-left:0;}s .yui-gb .yui-gd div.first{width:32%;}.yui-g .yui-gd div.first{_width:29.9%;}.yui-ge .yui-g{width:24%;}.yui-gf .yui-g{width:74.2%;}.yui-gb .yui-ge div.yui-u,.yui-gb .yui-gf div.yui-u{float:right;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf div.first{float:left;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf div.first{*width:24%;_width:20%;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf .yui-u{*width:73.5%;_width:65.5%;}.yui-ge div.first .yui-gd .yui-u{width:65%;}.yui-ge div.first .yui-gd div.first{width:32%;}#bd:after,.yui-g:after,.yui-gb:after,.yui-gc:after,.yui-gd:after,.yui-ge:after,.yui-gf:after{content:".";display:block;height:0;clear:both;visibility:hidden;}#bd,.yui-g,.yui-gb,.yui-gc,.yui-gd,.yui-ge,.yui-gf{zoom:1;}
+\ No newline at end of file
+diff --git a/docs/_theme/djangodocs/theme.conf b/docs/_theme/djangodocs/theme.conf
+deleted file mode 100644
+index be43c723ae61..000000000000
+--- a/docs/_theme/djangodocs/theme.conf
++++ /dev/null
+@@ -1,4 +0,0 @@
+-[theme]
+-inherit = basic
+-stylesheet = default.css
+-pygments_style = trac
+diff --git a/docs/_theme/djangodocs/theme.toml b/docs/_theme/djangodocs/theme.toml
+new file mode 100644
+index 000000000000..d1d9c0a7a387
+--- /dev/null
++++ b/docs/_theme/djangodocs/theme.toml
+@@ -0,0 +1,21 @@
++[theme]
++inherit = "pydata_sphinx_theme"
++stylesheets = ["default.css"]
++
++# Show full site nav in primary sidebar. (Replaces inherited "Section
++# Navigation" in sidebar-nav-bs.)
++sidebars = ["sidebar-collapse", "sidebar-nav-full"]
++
++[options]
++# Remove navbar-nav top level nav from top navbar (replaced in sidebars above).
++# Remove navbar-logo from navbar_start; replace with custom navbar-title in
++# center. (Avoids wrapping long docstitle version number in start column.)
++navbar_start = []
++navbar_center = ["navbar-title"]
++
++# Add last-updated to footer.
++footer_start = ["copyright", "last-updated"]
++footer_end = ["sphinx-version", "theme-version"]
++
++# In the right sidebar ("on this page"), initially expand 3 levels (default 2).
++show_toc_level = 3
+diff --git a/docs/conf.py b/docs/conf.py
+index 2b61027ec6cc..bf13f3beaae2 100644
+--- a/docs/conf.py
++++ b/docs/conf.py
+@@ -40,7 +40,7 @@
+ # -- General configuration --
+ 
+ # If your documentation needs a minimal Sphinx version, state it here.
+-needs_sphinx = "7.3.0"
++needs_sphinx = "8.2.0"
+ 
+ # Add any Sphinx extension module names here, as strings. They can be
+ # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
+diff --git a/docs/requirements.txt b/docs/requirements.txt
+index 6ac9446f0efc..fc6442c5932b 100644
+--- a/docs/requirements.txt
++++ b/docs/requirements.txt
+@@ -1,5 +1,6 @@
+ pyenchant
+-Sphinx>=7.3.0
++Sphinx>=8.2.0
++pydata-sphinx-theme
+ sphinxcontrib-spelling
+ blacken-docs
+ sphinx-lint

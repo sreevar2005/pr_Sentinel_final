@@ -1,0 +1,15 @@
+kind = "risky"
+title = "Payment client turns off certificate checks to 'fix' an SSL error"
+source = "synthetic"
+expect = ["CFG001 billing/gateway.py:3", "CFG001 billing/gateway.py:4"]
+allow = ["CFG001 billing/gateway.py:2"]
+
+[[file]]
+path = "billing/gateway.py"
+removed = ["    resp = session.post(GATEWAY_URL, json=payload, timeout=10)"]
+added = [
+    "    import urllib3",
+    "    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)",
+    "    session.verify = False",
+    "    resp = session.post(GATEWAY_URL, json=payload, timeout=10, verify=False)",
+]

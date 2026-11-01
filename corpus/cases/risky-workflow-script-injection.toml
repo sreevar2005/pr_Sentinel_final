@@ -1,0 +1,20 @@
+kind = "risky"
+title = "Issue title pasted into a shell script in a workflow"
+source = "synthetic; pattern from GitHub's script-injection guidance"
+expect = ["CI003 .github/workflows/triage.yml:9"]
+allow = ["PATH001 .github/workflows/triage.yml", "CI004 .github/workflows/triage.yml:6"]
+
+[[file]]
+path = ".github/workflows/triage.yml"
+status = "added"
+added = [
+    "name: Triage",
+    "on:",
+    "  issues:",
+    "    types: [opened]",
+    "permissions:",
+    "  issues: write",
+    "jobs:",
+    "  label:",
+    '    steps: [{ run: "echo New issue: ${{ github.event.issue.title }} >> $GITHUB_STEP_SUMMARY" }]',
+]

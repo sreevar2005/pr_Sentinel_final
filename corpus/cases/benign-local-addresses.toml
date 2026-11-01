@@ -1,0 +1,16 @@
+kind = "benign"
+title = "Local, private and documentation addresses, plus well-known URLs"
+source = "synthetic look-alike of NET001 and NET003"
+
+[[file]]
+path = "app/net.py"
+added = [
+    'BIND = "0.0.0.0"',
+    'REDIS = "redis://127.0.0.1:6379/0"',
+    'INTERNAL = "http://10.20.0.15:8080/health"',
+    'EXAMPLE = "https://203.0.113.10/"',
+    'SCHEMA = "https://json-schema.org/draft/2020-12/schema"',
+    'REPO = "https://github.com/acme/app"',
+    'HEALTH = "http://localhost:8000/health"',
+    "VERSION = (1, 2, 3, 4)",
+]

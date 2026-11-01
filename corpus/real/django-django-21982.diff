@@ -1,0 +1,878 @@
+diff --git a/django/template/base.py b/django/template/base.py
+index 85115fb68697..628aaeaf3017 100644
+--- a/django/template/base.py
++++ b/django/template/base.py
+@@ -90,7 +90,9 @@
+ # Match BLOCK_TAG_*, VARIABLE_TAG_*, and COMMENT_TAG_* tags and capture the
+ # entire tag, including start/end delimiters. Using re.compile() is faster
+ # than instantiating SimpleLazyObject with _lazy_re_compile().
+-tag_re = re.compile(r"({%.*?%}|{{.*?}}|{#.*?#})")
++tag_re = re.compile(r"({%[\s\S]*?%}|{{.*?}}|{#.*?#})")
++# RemovedInDjango2029Warning.
++tag_re_legacy = re.compile(r"({%.*?%}|{{.*?}}|{#.*?#})")
+ 
+ logger = logging.getLogger("django.template")
+ 
+@@ -184,9 +186,19 @@ def compile_nodelist(self):
+         template source.
+         """
+         if self.engine.debug:
+-            lexer = DebugLexer(self.source)
++            # RemovedInDjango2029Warning: When the deprecation ends, replace:
++            # lexer = DebugLexer(self.source)
++            lexer = DebugLexer(
++                self.source,
++                allow_multiline_tags=self.engine.allow_multiline_tags,
++            )
+         else:
+-            lexer = Lexer(self.source)
++            # RemovedInDjango2029Warning: When the deprecation ends, replace:
++            # lexer = Lexer(self.source)
++            lexer = Lexer(
++                self.source,
++                allow_multiline_tags=self.engine.allow_multiline_tags,
++            )
+ 
+         tokens = lexer.tokenize()
+         parser = Parser(
+@@ -257,11 +269,16 @@ def get_exception_info(self, exception, token):
+         source_lines = []
+         before = during = after = ""
+         for num, next in enumerate(linebreak_iter(self.source)):
+-            if start >= upto and end <= next:
++            if start >= upto and start < next:
+                 line = num
+                 before = self.source[upto:start]
+                 during = self.source[start:end]
+-                after = self.source[end:next]
++                after_end = self.source.find("\n", end)
++                if after_end == -1:
++                    after_end = len(self.source)
++                else:
++                    after_end += 1
++                after = self.source[end:after_end]
+             source_lines.append((num, self.source[upto:next]))
+             upto = next
+         total = len(source_lines)
+@@ -357,7 +374,14 @@ def linebreak_iter(template_source):
+ 
+ 
+ class Token:
+-    def __init__(self, token_type, contents, position=None, lineno=None):
++    def __init__(
++        self,
++        token_type,
++        contents,
++        position=None,
++        lineno=None,
++        raw_contents=None,
++    ):
+         """
+         A token representing a string from the template.
+ 
+@@ -375,11 +399,16 @@ def __init__(self, token_type, contents, position=None, lineno=None):
+         lineno
+             The line number the token appears on in the template source.
+             This is used for traceback information and gettext files.
++
++        raw_contents
++            The original token raw contents, including its opening and closing
++            delimiters.
+         """
+         self.token_type = token_type
+         self.contents = contents
+         self.lineno = lineno
+         self.position = position
++        self.raw_contents = raw_contents
+ 
+     def __repr__(self):
+         token_name = self.token_type.name.capitalize()
+@@ -409,16 +438,20 @@ class Lexer:
+         r"%s\s*(?:comment|verbatim)\b" % re.escape(BLOCK_TAG_START)
+     )
+     _comment_end_re = re.compile(
+-        r"%s[^\S\n]*endcomment[^\S\n]*%s"
+-        % (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END))
++        r"%s\s*endcomment\s*%s" % (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END))
+     )
+     _verbatim_end_re = re.compile(
+-        r"%s[^\S\n]*endverbatim[^\S\n]*%s"
++        r"%s\s*endverbatim\s*%s"
+         % (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END))
+     )
+ 
+-    def __init__(self, template_string):
++    # RemovedInDjango2029Warning: When the deprecation ends, replace with:
++    # def __init__(self, template_string):
++    def __init__(self, template_string, allow_multiline_tags=True):
+         self.template_string = template_string
++        # RemovedInDjango2029Warning.
++        self.tag_re = tag_re if allow_multiline_tags else tag_re_legacy
++        self.allow_multiline_tags = allow_multiline_tags
+ 
+     def __repr__(self):
+         return '<%s template_string="%s...">' % (
+@@ -442,9 +475,16 @@ def _raw_end_tag_re(self, token_string):
+             return self._comment_end_re
+         if len(bits) == 1:
+             return self._verbatim_end_re
+-        end_content = re.escape("end" + token_string[2:-2].strip())
++        # RemovedInDjango2029Warning: When the deprecation ends, replace with:
++        # end_bits = ["endverbatim", *bits[1:]]
++        # end_content = r"\s*".join(re.escape(bit) for bit in end_bits)
++        if self.allow_multiline_tags:
++            end_bits = ["endverbatim", *bits[1:]]
++            end_content = r"\s*".join(re.escape(bit) for bit in end_bits)
++        else:
++            end_content = re.escape("end" + token_string[2:-2].strip())
+         return re.compile(
+-            r"%s[^\S\n]*%s[^\S\n]*%s"
++            r"%s\s*%s\s*%s"
+             % (
+                 re.escape(BLOCK_TAG_START),
+                 end_content,
+@@ -461,7 +501,9 @@ def _tag_re_split(self):
+         """
+         last = 0
+         raw_end_re = None
+-        regex = tag_re
++        # RemovedInDjango2029Warning: When the deprecation ends, replace with:
++        # regex = tag_re
++        regex = self.tag_re
+ 
+         while match := regex.search(self.template_string, last):
+             start, end = match.span()
+@@ -477,7 +519,10 @@ def _tag_re_split(self):
+             else:
+                 # The matched tag closed the current raw block.
+                 raw_end_re = None
+-            regex = raw_end_re if raw_end_re is not None else tag_re
++            # RemovedInDjango2029Warning: When the deprecation ends, replace
++            # with:
++            # regex = raw_end_re if raw_end_re is not None else tag_re
++            regex = raw_end_re if raw_end_re is not None else self.tag_re
+ 
+         yield self.template_string[last:], (last, len(self.template_string))
+ 
+@@ -491,7 +536,10 @@ def tokenize(self):
+         # Use the faster regex split when no raw opening tag is present.
+         # False positives use the raw-aware splitter.
+         if self._raw_start_re.search(self.template_string) is None:
+-            token_strings = tag_re.split(self.template_string)
++            # RemovedInDjango2029Warning: When the deprecation ends, replace
++            # with:
++            # token_strings = tag_re.split(self.template_string)
++            token_strings = self.tag_re.split(self.template_string)
+         else:
+             token_strings = (token_string for token_string, _ in self._tag_re_split())
+         for token_string in token_strings:
+@@ -520,7 +568,13 @@ def create_token(self, token_string, position, lineno, in_tag):
+                 VARIABLE_TAG_START: TokenType.VAR,
+                 COMMENT_TAG_START: TokenType.COMMENT,
+             }
+-            return Token(token_type_match[token_start], content, position, lineno)
++            return Token(
++                token_type_match[token_start],
++                content,
++                position,
++                lineno,
++                raw_contents=token_string if "\n" in token_string else None,
++            )
+         return Token(TokenType.TEXT, token_string, position, lineno)
+ 
+ 
+@@ -692,23 +746,46 @@ def error(self, token, e):
+             e.token = token
+         return e
+ 
++    def _multiline_block_tag_message(self, token, opening=False):
++        if token.raw_contents is None or "\n" not in token.raw_contents:
++            return ""
++
++        source = token.raw_contents
++        if len(source) > 200:
++            source = f"{source[:100]}[…]{source[-100:]}"
++
++        end_lineno = token.lineno + token.raw_contents.count("\n")
++        if opening:
++            message = (
++                f"\nThe opening tag spans lines {token.lineno}-{end_lineno}: "
++                f"{source!r}."
++            )
++        else:
++            message = (
++                f"\nDjango interpreted lines {token.lineno}-{end_lineno} as a single "
++                f"block tag: {source!r}."
++            )
++
++        return message + (
++            "\nIf the '{%' and '%}' sequences were intended as text, use "
++            "'{% templatetag openblock %}' and "
++            "'{% templatetag closeblock %}', respectively."
++        )
++
+     def invalid_block_tag(self, token, command, parse_until=None):
+         if parse_until:
+-            raise self.error(
+-                token,
+-                "Invalid block tag on line %d: '%s', expected %s. Did you "
+-                "forget to register or load this tag?"
+-                % (
+-                    token.lineno,
+-                    command,
+-                    get_text_list(["'%s'" % p for p in parse_until], "or"),
+-                ),
++            expected = get_text_list(["'%s'" % p for p in parse_until], "or")
++            error_msg = (
++                f"Invalid block tag on line {token.lineno}: '{command}', "
++                f"expected {expected}. Did you forget to register or load this tag?"
+             )
+-        raise self.error(
+-            token,
+-            "Invalid block tag on line %d: '%s'. Did you forget to register "
+-            "or load this tag?" % (token.lineno, command),
+-        )
++        else:
++            error_msg = (
++                f"Invalid block tag on line {token.lineno}: '{command}'. "
++                "Did you forget to register or load this tag?"
++            )
++        error_msg += self._multiline_block_tag_message(token)
++        raise self.error(token, error_msg)
+ 
+     def unclosed_block_tag(self, parse_until):
+         command, token = self.command_stack.pop()
+@@ -717,6 +794,7 @@ def unclosed_block_tag(self, parse_until):
+             command,
+             ", ".join(parse_until),
+         )
++        msg += self._multiline_block_tag_message(token, opening=True)
+         raise self.error(token, msg)
+ 
+     def next_token(self):
+diff --git a/django/template/defaulttags.py b/django/template/defaulttags.py
+index 56f0e592dd3a..fd799ab9daf4 100644
+--- a/django/template/defaulttags.py
++++ b/django/template/defaulttags.py
+@@ -1247,7 +1247,7 @@ def partialdef_func(parser, token):
+ 
+     nodelist = parser.parse(valid_endpartials)
+     endpartial = parser.next_token()
+-    if endpartial.contents not in valid_endpartials:
++    if " ".join(endpartial.split_contents()) not in valid_endpartials:
+         parser.invalid_block_tag(endpartial, "endpartialdef", valid_endpartials)
+ 
+     pos_close = getattr(endpartial, "position", None)
+diff --git a/django/template/engine.py b/django/template/engine.py
+index 0b408ab0e466..1db0714cda5d 100644
+--- a/django/template/engine.py
++++ b/django/template/engine.py
+@@ -1,7 +1,10 @@
+ import functools
++import warnings
+ 
+ from django.core.exceptions import ImproperlyConfigured
++from django.utils.deprecation import RemovedInDjango2029Warning
+ from django.utils.module_loading import import_string
++from django.utils.warnings import django_file_prefixes
+ 
+ from .base import Template
+ from .context import Context, _builtin_context_processors
+@@ -28,6 +31,7 @@ def __init__(
+         libraries=None,
+         builtins=None,
+         autoescape=True,
++        allow_multiline_tags=None,  # RemovedInDjango2029Warning.
+     ):
+         if dirs is None:
+             dirs = []
+@@ -60,6 +64,17 @@ def __init__(
+         self.template_libraries = self.get_template_libraries(libraries)
+         self.builtins = self.default_builtins + builtins
+         self.template_builtins = self.get_template_builtins(self.builtins)
++        # RemovedInDjango2029Warning.
++        if allow_multiline_tags is not None:
++            warnings.warn(
++                "The 'allow_multiline_tags' transitional template engine "
++                "option is deprecated.",
++                RemovedInDjango2029Warning,
++                skip_file_prefixes=django_file_prefixes(),
++            )
++        else:
++            allow_multiline_tags = True
++        self.allow_multiline_tags = allow_multiline_tags
+ 
+     def __repr__(self):
+         return (
+diff --git a/django/template/loader_tags.py b/django/template/loader_tags.py
+index 3a0d054e6258..ccb8c8a691e4 100644
+--- a/django/template/loader_tags.py
++++ b/django/template/loader_tags.py
+@@ -237,7 +237,7 @@ def do_block(parser, token):
+     # This check is kept for backwards-compatibility. See #3100.
+     endblock = parser.next_token()
+     acceptable_endblocks = ("endblock", "endblock %s" % block_name)
+-    if endblock.contents not in acceptable_endblocks:
++    if " ".join(endblock.split_contents()) not in acceptable_endblocks:
+         parser.invalid_block_tag(endblock, "endblock", acceptable_endblocks)
+ 
+     return BlockNode(block_name, nodelist)
+diff --git a/docs/internals/deprecation.txt b/docs/internals/deprecation.txt
+index bd09932b0944..e2f1b8c49d7f 100644
+--- a/docs/internals/deprecation.txt
++++ b/docs/internals/deprecation.txt
+@@ -33,6 +33,9 @@ details on these changes.
+ 
+ * ``django.utils.functional.cached_property`` will be removed.
+ 
++* The ``allow_multiline_tags`` transitional template engine option will be
++  removed.
++
+ .. _deprecation-removed-in-2028:
+ 
+ 2028
+diff --git a/docs/ref/templates/language.txt b/docs/ref/templates/language.txt
+index bcf4c26ed6e6..7220c6c21d5c 100644
+--- a/docs/ref/templates/language.txt
++++ b/docs/ref/templates/language.txt
+@@ -202,6 +202,25 @@ some load external information into the template to be used by later variables.
+ Some tags require beginning and ending tags (i.e. ``{% tag %} ... tag contents
+ ... {% endtag %}``).
+ 
++Tags can span multiple lines, which can make tags with several arguments
++easier to read:
++
++.. code-block:: html+django
++
++    {% include
++        "blog/includes/article_card.html"
++        with
++            article=article
++            show_author=True
++            show_publication_date=True
++            extra_classes="featured-article"
++        only
++    %}
++
++.. versionchanged:: 6.2
++
++    Support for template tags spanning multiple lines was added.
++
+ Django ships with about two dozen built-in template tags. You can read all
+ about them in the :ref:`built-in tag reference <ref-templates-builtins-tags>`.
+ To give you a taste of what's available, here are some of the more commonly
+diff --git a/docs/releases/6.2.txt b/docs/releases/6.2.txt
+index bb519474a7c3..34ba941d48b8 100644
+--- a/docs/releases/6.2.txt
++++ b/docs/releases/6.2.txt
+@@ -78,6 +78,28 @@ The query content is available as :attr:`HttpRequest.body
+ responses. Conditional request processing with ``ETag`` or ``Last-Modified``
+ validators is supported.
+ 
++Multiline template tags
++-----------------------
++
++The :class:`~django.template.backends.django.DjangoTemplates` backend now
++supports template tags spanning multiple lines. This can make tags with several
++arguments easier to read:
++
++.. code-block:: html+django
++
++    {% include
++        "blog/includes/article_card.html"
++        with
++            article=article
++            show_author=True
++            extra_classes="featured-article"
++        only
++    %}
++
++This change to template parsing may cause template errors or unexpected
++rendering in some existing templates. See
++:ref:`multiline-template-tags-compatibility` for details.
++
+ Adopting calendar versioning
+ ----------------------------
+ 
+@@ -335,6 +357,44 @@ Validators
+ Backwards incompatible changes in 6.2
+ =====================================
+ 
++.. _multiline-template-tags-compatibility:
++
++Multiline template tag parsing
++------------------------------
++
++Previously, ``{%`` and ``%}`` sequences on separate lines were treated as text.
++These may now be interpreted as a template tag. This can change the rendered
++output or raise a :exc:`~django.template.TemplateSyntaxError`. Use the
++:ttag:`templatetag` tag with ``openblock`` and ``closeblock`` to output these
++sequences as text.
++
++For example, previously the following was rendered as text:
++
++.. code-block:: text
++
++    This is the opening delimiter {%.
++    This is the closing delimiter %}.
++
++To preserve this output, use:
++
++.. code-block:: html+django
++
++    This is the opening delimiter {% templatetag openblock %}.
++    This is the closing delimiter {% templatetag closeblock %}.
++
++Whitespace within the names of named :ttag:`verbatim` tags is now treated as
++equivalent when matching closing tags. Previously, ``{% verbatim a   b %}``
++required ``{% endverbatim a   b %}`` to close it. It now also matches
++``{% endverbatim a b %}``, which may cause a verbatim block to end earlier than
++intended.
++
++You can temporarily restore the previous parsing behavior by setting
++``"allow_multiline_tags": False`` in the
++:class:`~django.template.backends.django.DjangoTemplates` backend's
++:setting:`OPTIONS <TEMPLATES-OPTIONS>`. Remove the option once your templates
++are updated. This transitional option is deprecated and will be removed in
++Django 2029.
++
+ Database backend API
+ --------------------
+ 
+diff --git a/docs/topics/templates.txt b/docs/topics/templates.txt
+index 1d9e39226813..9bc5465df55b 100644
+--- a/docs/topics/templates.txt
++++ b/docs/topics/templates.txt
+@@ -589,6 +589,17 @@ applications. This generic name was kept for backwards-compatibility.
+   Tags and filters from built-in libraries can be used without first calling
+   the :ttag:`{% load %} <load>` tag.
+ 
++* ``'allow_multiline_tags'``: Set to ``False`` to restore legacy template
++  parsing, in which block tags cannot span multiple lines.
++
++.. versionchanged:: 6.2
++
++    The ``allow_multiline_tags`` option was added.
++
++.. deprecated:: 6.2
++
++    Support for the ``allow_multiline_tags`` option is deprecated.
++
+ .. module:: django.template.backends.jinja2
+ 
+ .. class:: Jinja2
+diff --git a/tests/template_tests/syntax_tests/test_basic.py b/tests/template_tests/syntax_tests/test_basic.py
+index 6f0ce2eaccad..9a56c5534fdc 100644
+--- a/tests/template_tests/syntax_tests/test_basic.py
++++ b/tests/template_tests/syntax_tests/test_basic.py
+@@ -3,7 +3,10 @@
+ from django.template.context import Context
+ from django.template.loader_tags import BlockContext, BlockNode
+ from django.test import SimpleTestCase, ignore_warnings
+-from django.utils.deprecation import RemovedInDjango2028Warning
++from django.utils.deprecation import (
++    RemovedInDjango2028Warning,
++    RemovedInDjango2029Warning,
++)
+ from django.views.debug import ExceptionReporter
+ 
+ from ..utils import SilentAttrClass, SilentGetItemClass, SomeClass, setup
+@@ -328,6 +331,175 @@ def test_basic_syntax38(self):
+         )
+         self.assertEqual(output, "foo bar")
+ 
++    @setup({"multiline_block_token": """
++                {% if
++                    foo
++                    or bar
++                %}a{%
++                    else
++                %}b{%
++                    endif
++                %}{% with a=3
++                     b='bar'|upper
++                     c=foo|upper
++                %}{{ a }} {{ b }} {{ c }}{% endwith %}
++            """})
++    def test_multiline_block_tags(self):
++        for context, expected_output in [
++            ({"foo": "cat", "bar": True}, "a3 BAR CAT"),
++            ({"foo": "cat", "bar": False}, "a3 BAR CAT"),
++            ({"foo": "", "bar": True}, "a3 BAR"),
++            ({"foo": "", "bar": False}, "b3 BAR"),
++        ]:
++            with self.subTest(context=context):
++                output = self.engine.render_to_string(
++                    "multiline_block_token", context
++                ).strip()
++                self.assertEqual(output, expected_output)
++
++    @setup({"newline_rendering": """
++              <p
++                data-test='{{% for item in item_list %}
++                  "{{ item }}": {"key": "value"},
++                {% endfor %}}'
++              ></p>
++            """})
++    def test_multiline_block_tag_between_literal_braces(self):
++        for context, contains_output in [
++            ({"item_list": []}, "data-test='{}'"),
++            ({"item_list": ["item_1"]}, '"item_1": {"key": "value"},'),
++        ]:
++            with self.subTest(context=context):
++                output = self.engine.render_to_string("newline_rendering", context)
++                self.assertIn(contains_output, output)
++
++    @setup({"unclosed_multiline_tag": "The open tag: {%\nif user %}"})
++    def test_unclosed_multiline_block_tag_error_suggests_templatetag(self):
++        msg = (
++            "Unclosed tag on line 1: 'if'. Looking for one of: elif, else, "
++            "endif.\n"
++            "The opening tag spans lines 1-2: '{%\\nif user %}'.\n"
++            "If the '{%' and '%}' sequences were intended as text, use "
++            "'{% templatetag openblock %}' and "
++            "'{% templatetag closeblock %}', respectively."
++        )
++        with self.assertRaisesMessage(TemplateSyntaxError, msg):
++            self.engine.render_to_string("unclosed_multiline_tag")
++
++    @setup(
++        {
++            "inside_block": (
++                "{% if user %}\n"
++                "<p>The open tag: {%</p>\n"
++                "<p>The close tag: %}</p>\n"
++                "{% endif %}"
++            ),
++        }
++    )
++    def test_multiline_block_tag_error_inside_block(self):
++        msg = (
++            "Invalid block tag on line 2: '</p>', expected 'elif', 'else' or "
++            "'endif'. Did you forget to register or load this tag?\n"
++            "Django interpreted lines 2-3 as a single block tag: "
++            "'{%</p>\\n<p>The close tag: %}'.\n"
++            "If the '{%' and '%}' sequences were intended as text, use "
++            "'{% templatetag openblock %}' and "
++            "'{% templatetag closeblock %}', respectively."
++        )
++        with self.assertRaisesMessage(TemplateSyntaxError, msg):
++            self.engine.render_to_string("inside_block")
++
++    @setup({"long_error": "{%" + ("a" * 150) + "\n" + ("b" * 150) + "%}"})
++    def test_multiline_block_tag_message_truncates_source(self):
++        command = "a" * 150
++        start = "a" * 98
++        end = "b" * 98
++        msg = (
++            f"Invalid block tag on line 1: {command!r}. Did you forget to "
++            "register or load this tag?\n"
++            "Django interpreted lines 1-2 as a single block tag: "
++            f"'{{%{start}[…]{end}%}}'.\n"
++            "If the '{%' and '%}' sequences were intended as text, use "
++            "'{% templatetag openblock %}' and "
++            "'{% templatetag closeblock %}', respectively."
++        )
++        with self.assertRaisesMessage(TemplateSyntaxError, msg):
++            self.engine.render_to_string("long_error")
++
++    @setup({"in_text": "<p>The open tag: {%</p>\n<p>The close tag: %}</p>"})
++    def test_multiline_block_tag_error_message(self):
++        msg = (
++            "Invalid block tag on line 1: '</p>'. Did you forget to register "
++            "or load this tag?\n"
++            "Django interpreted lines 1-2 as a single block tag: "
++            "'{%</p>\\n<p>The close tag: %}'.\n"
++            "If the '{%' and '%}' sequences were intended as text, use "
++            "'{% templatetag openblock %}' and "
++            "'{% templatetag closeblock %}', respectively."
++        )
++        with self.assertRaisesMessage(TemplateSyntaxError, msg):
++            self.engine.render_to_string("in_text")
++
++    def test_multiline_block_tag_debug_info(self):
++        engine = Engine(debug=True)
++        source = "<p>The open tag: {%</p>\n<p>The close tag: %}</p>"
++
++        with self.assertRaises(TemplateSyntaxError) as cm:
++            engine.from_string(source)
++
++        self.assertEqual(
++            cm.exception.template_debug["during"],
++            "{%</p>\n<p>The close tag: %}",
++        )
++        self.assertEqual(cm.exception.template_debug["line"], 1)
++        self.assertEqual(
++            cm.exception.template_debug["start"],
++            source.index("{%"),
++        )
++        self.assertEqual(
++            cm.exception.template_debug["end"],
++            source.index("%}") + 2,
++        )
++        self.assertEqual(cm.exception.template_debug["after"], "</p>")
++
++    @setup(
++        {
++            "escaped_block_tags": (
++                "<p>The open tag: {% templatetag openblock %}</p>\n"
++                "<p>The close tag: {% templatetag closeblock %}</p>"
++            ),
++        }
++    )
++    def test_block_tags_rendered_as_text(self):
++        output = self.engine.render_to_string("escaped_block_tags")
++        self.assertEqual(
++            output,
++            "<p>The open tag: {%</p>\n<p>The close tag: %}</p>",
++        )
++
++    def test_allow_multiline_tags_disabled(self):
++        msg = (
++            "The 'allow_multiline_tags' transitional template engine "
++            "option is deprecated."
++        )
++        tests = [
++            "<p>The open tag: {%</p>\n<p>The close tag: %}</p>",
++            "{%\ncsrf_token\n%}",
++        ]
++
++        for debug in (False, True):
++            with self.subTest(debug=debug):
++                with self.assertWarnsMessage(RemovedInDjango2029Warning, msg):
++                    engine = Engine(
++                        debug=debug,
++                        allow_multiline_tags=False,
++                    )
++
++                for source in tests:
++                    with self.subTest(source=source):
++                        template = engine.from_string(source)
++                        self.assertEqual(template.render(Context()), source)
++
+     @setup({"template": "{% block content %}"})
+     def test_unclosed_block(self):
+         msg = "Unclosed tag on line 1: 'block'. Looking for one of: endblock."
+diff --git a/tests/template_tests/syntax_tests/test_comment.py b/tests/template_tests/syntax_tests/test_comment.py
+index 94ab750e051e..20a0df74984d 100644
+--- a/tests/template_tests/syntax_tests/test_comment.py
++++ b/tests/template_tests/syntax_tests/test_comment.py
+@@ -99,6 +99,11 @@ def test_closing_tag_after_literal_opening_brace(self):
+         output = self.engine.render_to_string("comment")
+         self.assertEqual(output, "visible")
+ 
++    @setup({"comment": "{% comment %}content{%\nendcomment\n%}"})
++    def test_multiline_raw_block_closing_tags(self):
++        output = self.engine.render_to_string("comment")
++        self.assertEqual(output, "")
++
+     @setup(
+         {
+             "comment": (
+diff --git a/tests/template_tests/syntax_tests/test_named_endblock.py b/tests/template_tests/syntax_tests/test_named_endblock.py
+index 7469a28778d4..9230b29b554d 100644
+--- a/tests/template_tests/syntax_tests/test_named_endblock.py
++++ b/tests/template_tests/syntax_tests/test_named_endblock.py
+@@ -80,3 +80,13 @@ def test_namedendblocks06(self):
+     def test_namedendblocks07(self):
+         output = self.engine.render_to_string("namedendblocks07")
+         self.assertEqual(output, "1_2_3")
++
++    @setup({"namedendblock_multiline": """
++        {% block navheader %}header
++        {%
++            endblock
++            navheader
++        %}"""})
++    def test_namedendblock_multiline(self):
++        output = self.engine.render_to_string("namedendblock_multiline", {}).strip()
++        self.assertEqual(output, "header")
+diff --git a/tests/template_tests/syntax_tests/test_partials.py b/tests/template_tests/syntax_tests/test_partials.py
+index a2cd3ae96a6a..79cc2775222b 100644
+--- a/tests/template_tests/syntax_tests/test_partials.py
++++ b/tests/template_tests/syntax_tests/test_partials.py
+@@ -287,7 +287,9 @@ def test_nested_partials(self):
+             "partialdef_opening_closing_name_mismatch": (
+                 "{% partialdef testing-name %}TEST{% endpartialdef invalid %}"
+             ),
+-            "partialdef_invalid_name": gen_partial_template("with\nnewline"),
++            "partialdef_inline_without_parameters": gen_partial_template(
++                "with\nnewline"
++            ),
+             "partialdef_extra_params": (
+                 "{% partialdef testing-name inline extra %}TEST{% endpartialdef %}"
+             ),
+@@ -319,7 +321,11 @@ def test_basic_parse_errors(self):
+                 "partialdef_opening_closing_name_mismatch",
+                 "expected 'endpartialdef' or 'endpartialdef testing-name'.",
+             ),
+-            ("partialdef_invalid_name", "Invalid block tag on line 3: 'endpartialdef'"),
++            (
++                "partialdef_inline_without_parameters",
++                "The 'inline' argument does not have any parameters; "
++                "either use 'inline' or remove it completely.",
++            ),
+             ("partialdef_extra_params", "'partialdef' tag takes at most 2 arguments"),
+             (
+                 "partialdef_duplicated_names",
+@@ -495,15 +501,17 @@ def test_undefined_partial_exception_info_template_does_not_exist(self):
+         }
+     )
+     def test_partial_with_syntax_error_exception_info(self):
+-        with self.assertRaises(TemplateSyntaxError) as cm:
++        msg = (
++            'Malformed template tag at line 5: "endif\n'
++            "    <p>Missing closing tag above</p>\n"
++            '{% endpartialdef"'
++        )
++        with self.assertRaisesMessage(TemplateSyntaxError, msg) as cm:
+             self.engine.get_template("partial_with_syntax_error")
+ 
+-        self.assertIn("endif", str(cm.exception).lower())
+-
+         if self.engine.debug:
+             exc_debug = cm.exception.template_debug
+-
+-            self.assertIn("endpartialdef", exc_debug["during"])
++            self.assertEqual("{% if user %}", exc_debug["during"])
+             self.assertEqual(exc_debug["name"], "partial_with_syntax_error")
+             self.assertIn("endif", exc_debug["message"].lower())
+ 
+@@ -650,3 +658,20 @@ def test_broken_partial_nesting_mixed(self):
+         exception_value = str(traceback_data.get("exception_value", ""))
+         self.assertIn("Invalid block tag", exception_value)
+         self.assertIn("'endpartialdef outer'", str(cm.exception))
++
++    @setup(
++        {
++            "multiline_endpartialdef": (
++                "{% partialdef greeting %}"
++                "Hello!"
++                "{%\n"
++                "    endpartialdef\n"
++                "    greeting\n"
++                "%}"
++                "{% partial greeting %}"
++            ),
++        }
++    )
++    def test_multiline_named_closing_tag(self):
++        output = self.engine.render_to_string("multiline_endpartialdef")
++        self.assertEqual(output, "Hello!")
+diff --git a/tests/template_tests/syntax_tests/test_verbatim.py b/tests/template_tests/syntax_tests/test_verbatim.py
+index 2bb3c7b203c4..26e8a83f8ce1 100644
+--- a/tests/template_tests/syntax_tests/test_verbatim.py
++++ b/tests/template_tests/syntax_tests/test_verbatim.py
+@@ -1,5 +1,7 @@
+-from django.template import TemplateSyntaxError
++from django.template import Context, Engine, TemplateSyntaxError
+ from django.test import SimpleTestCase
++from django.test.utils import ignore_warnings
++from django.utils.deprecation import RemovedInDjango2029Warning
+ 
+ from ..utils import setup
+ 
+@@ -113,14 +115,26 @@ def test_literal_multiline_opener_in_named_verbatim(self):
+             "\n{%\n{% endverbatim %}\n",
+         )
+ 
++    @setup({"verbatim": "{% verbatim %}content{%\nendverbatim\n%}"})
++    def test_multiline_raw_block_closing_tags(self):
++        output = self.engine.render_to_string("verbatim")
++        self.assertEqual(output, "content")
++
+     @setup(
+         {"verbatim": "{% verbatim a  b %}{% endverbatim a b %}{% endverbatim a  b %}"}
+     )
+-    def test_named_verbatim_preserves_name_whitespace(self):
+-        self.assertEqual(
+-            self.engine.render_to_string("verbatim"),
+-            "{% endverbatim a b %}",
++    def test_named_verbatim_name_whitespace_not_preserved(self):
++        with self.assertRaises(TemplateSyntaxError):
++            self.engine.render_to_string("verbatim")
++
++    # RemovedInDjango2029Warning.
++    @ignore_warnings(category=RemovedInDjango2029Warning)
++    def test_named_verbatim_preserves_name_whitespace_legacy(self):
++        engine = Engine(allow_multiline_tags=False)
++        template = engine.from_string(
++            "{% verbatim a  b %}{% endverbatim a b %}{% endverbatim a  b %}"
+         )
++        self.assertEqual(template.render(Context()), "{% endverbatim a b %}")
+ 
+     @setup(
+         {
+@@ -140,6 +154,22 @@ def test_literal_multiline_block_opener_in_raw_blocks(self):
+         output = self.engine.render_to_string("verbatim")
+         self.assertEqual(output, "\n{%\n")
+ 
++    @setup(
++        {
++            "verbatim": (
++                "{% verbatim example %}"
++                "content"
++                "{%\n"
++                "    endverbatim\n"
++                "    example\n"
++                "%}"
++            ),
++        }
++    )
++    def test_multiline_named_closing_tag(self):
++        output = self.engine.render_to_string("verbatim")
++        self.assertEqual(output, "content")
++
+     @setup(
+         {
+             "no_spaces": "{%verbatim%}{{ x }}{%endverbatim%}",
+diff --git a/tests/template_tests/test_base.py b/tests/template_tests/test_base.py
+index 33a200c362b0..4b42296a0229 100644
+--- a/tests/template_tests/test_base.py
++++ b/tests/template_tests/test_base.py
+@@ -28,6 +28,15 @@ def test_tokenize(self):
+         ]
+         self.assertEqual(token_tuples, self.make_expected())
+ 
++    def test_tokenize_multiline_block(self):
++        template = "before\n{%\nif foo\n%}after"
++        token = self.lexer_class(template).tokenize()[1]
++
++        self.assertEqual(token.token_type, TokenType.BLOCK)
++        self.assertEqual(token.contents, "if foo")
++        self.assertEqual(token.lineno, 2)
++        self.assertEqual(token.raw_contents, "{%\nif foo\n%}")
++
+     def make_expected(self):
+         raise NotImplementedError("This method must be implemented by a subclass.")
+ 
+diff --git a/tests/template_tests/test_engine.py b/tests/template_tests/test_engine.py
+index ff725b988072..54eb20bc325f 100644
+--- a/tests/template_tests/test_engine.py
++++ b/tests/template_tests/test_engine.py
+@@ -4,6 +4,7 @@
+ from django.template import Context
+ from django.template.engine import Engine
+ from django.test import SimpleTestCase, override_settings
++from django.utils.deprecation import RemovedInDjango2029Warning
+ 
+ from .utils import ROOT, TEMPLATE_DIR
+ 
+@@ -46,6 +47,17 @@ def test_repr(self):
+             "autoescape=False>",
+         )
+ 
++    # RemovedInDjango2029Warning.
++    def test_allow_multiline_tags_option_deprecated(self):
++        msg = (
++            "The 'allow_multiline_tags' transitional template engine "
++            "option is deprecated."
++        )
++        for value in (True, False):
++            with self.subTest(value=value):
++                with self.assertWarnsMessage(RemovedInDjango2029Warning, msg):
++                    Engine(allow_multiline_tags=value)
++
+ 
+ class RenderToStringTest(SimpleTestCase):
+     def setUp(self):

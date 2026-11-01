@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Dockerfile pipes a remote installer into bash"
+source = "synthetic"
+expect = ["EXE001 Dockerfile:3"]
+
+[[file]]
+path = "Dockerfile"
+removed = ["FROM python:3.12-slim"]
+added = ["FROM python:3.12-slim", "WORKDIR /app", "RUN curl -sSL https://install.tooling-get.co/setup.sh | bash -s -- --yes"]

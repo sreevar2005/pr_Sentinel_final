@@ -1,0 +1,13 @@
+diff --git a/packages/create-vite/package.json b/packages/create-vite/package.json
+index 543791dcc2c314..cca6d1a2388b70 100644
+--- a/packages/create-vite/package.json
++++ b/packages/create-vite/package.json
+@@ -10,7 +10,7 @@
+   },
+   "files": [
+     "index.js",
+-    "template-*",
++    "template-*/**",
+     "dist"
+   ],
+   "scripts": {

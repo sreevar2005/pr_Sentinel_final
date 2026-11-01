@@ -113,6 +113,7 @@ _UNTRUSTED_RE = re.compile(
     r"|workflow_run\.(?:head_branch|head_commit\.message|display_title)"
     r"))[^}]*\}\}"
 )
+_INLINE_RUN_RE = re.compile(r"[{,]\s*[\"']?(?:run|script)[\"']?\s*:")
 _PR_TARGET_RE = re.compile(r"\bpull_request_target\b")
 _WORKFLOW_RUN_RE = re.compile(r"^\s*-?\s*workflow_run\s*:")
 _HEAD_REF_RE = re.compile(
@@ -176,7 +177,10 @@ class WorkflowDetector(Detector):
             )  # fmt: skip
         # Lines inside a run: block have no key of their own. Other keys (env:, with:) receive the
         # value as data, which is the safe pattern.
-        if (match := _UNTRUSTED_RE.search(text)) and (key is None or key in ("run", "script")):
+        # Flow-style YAML ({ run: "..." }) puts the key mid-line, so look before the expression too.
+        if (match := _UNTRUSTED_RE.search(text)) and (
+            key is None or key in ("run", "script") or _INLINE_RUN_RE.search(text, 0, match.start())
+        ):
             yield SCRIPT_INJECTION.finding(path, no, text, f"Expands {match[0]} directly into code.")
         if _WRITE_ALL_RE.match(text):
             yield WRITE_PERMISSIONS.finding(

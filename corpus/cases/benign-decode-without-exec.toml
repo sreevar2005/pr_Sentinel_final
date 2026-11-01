@@ -1,0 +1,12 @@
+kind = "benign"
+title = "Base64 decoding of data that is never executed"
+source = "synthetic look-alike of OBF005"
+allow = ["PATH004 app/tokens.py"]
+
+[[file]]
+path = "app/tokens.py"
+added = [
+    "payload = base64.urlsafe_b64decode(segment + '==')",
+    "claims = json.loads(base64.b64decode(parts[1]))",
+    "image = Image.open(io.BytesIO(base64.b64decode(data)))",
+]

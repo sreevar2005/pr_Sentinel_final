@@ -1,0 +1,14 @@
+kind = "risky"
+title = "API opens CORS to every origin while sending cookies"
+source = "synthetic"
+expect = ["CFG002 api/main.py:3"]
+
+[[file]]
+path = "api/main.py"
+removed = ['app.add_middleware(CORSMiddleware, allow_origins=["https://app.acme.co"],']
+added = [
+    "app.add_middleware(",
+    "    CORSMiddleware,",
+    '    allow_origins=["*"],',
+    "    allow_credentials=True,",
+]

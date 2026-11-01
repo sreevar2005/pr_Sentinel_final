@@ -129,6 +129,15 @@ def _public_ip(text: str) -> str | None:
     return text if address.is_global else None
 
 
+def _is_ip(host: str) -> bool:
+    """IP literals are NET001's job (public ones only); private and local ones are not news."""
+    try:
+        ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        return False
+    return True
+
+
 def _code_or_ci(path: str) -> bool:
     return is_runnable(path) and not is_lockfile(path)
 
@@ -173,7 +182,7 @@ class NetworkDetector(Detector):
                 continue
             for match in _URL_RE.finditer(text):
                 host = match[1].lower()
-                if "." not in host or _allowed(host) or _public_ip(host) or _EXFIL_RE.search(host):
+                if "." not in host or _is_ip(host) or _allowed(host) or _EXFIL_RE.search(host):
                     continue
                 # Keep the line that sends data if there is one: it is the one worth reading.
                 if host not in new_hosts or (
@@ -194,7 +203,7 @@ class DataCollectionDetector(PatternDetector):
     name = "data-collection"
     patterns = (
         Pattern(ENV_HARVEST, re.compile(
-            r"\b(?:json\.dumps|str|repr|base64\.\w+encode)\s*\(\s*(?:dict\s*\(\s*)?os\.environ\b"
+            r"\b(?:json\.dumps|str|repr|base64\.\w+encode)\s*\(\s*(?:dict\s*\(\s*)?os\.environ\b(?!\s*(?:\.get|\[))"
             r"|\bJSON\.stringify\s*\(\s*process\.env\s*[,)]|\bObject\.entries\s*\(\s*process\.env\s*\)"
             r"|\bprintenv\s*(?:\||>|$)|(?<![\w-])env\s*\|\s*(?:curl|nc|base64|gzip)\b"
             r"|\bEnvironment\.GetEnvironmentVariables\s*\(\s*\)|\bos\.Environ\s*\(\s*\)"

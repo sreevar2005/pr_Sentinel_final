@@ -1,0 +1,20 @@
+kind = "benign"
+title = "Dependabot bump touching both the manifest and the lockfile"
+source = "synthetic look-alike of DEP001, DEP004 and DEP005"
+
+[[file]]
+path = "package.json"
+removed = ['    "lodash": "^4.17.20",']
+added = ['    "lodash": "^4.17.21",']
+
+[[file]]
+path = "package-lock.json"
+removed = [
+    '      "version": "4.17.20",',
+    '      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz",',
+]
+added = [
+    '      "version": "4.17.21",',
+    '      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz",',
+    '      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==",',
+]

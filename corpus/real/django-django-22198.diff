@@ -1,0 +1,214 @@
+diff --git a/.github/workflows/docs.yml b/.github/workflows/docs.yml
+index 68df359a14b4..f29efdab6f8f 100644
+--- a/.github/workflows/docs.yml
++++ b/.github/workflows/docs.yml
+@@ -48,6 +48,8 @@ jobs:
+         run: make black
+       - name: Spelling
+         run: SPHINXOPTS="-q -W" make spelling
++      - name: EPUBCheck
++        run: SPHINXOPTS="-q" make epubcheck
+ 
+   sphinx-extension-tests:
+     runs-on: ubuntu-24.04
+diff --git a/docs/Makefile b/docs/Makefile
+index 706bcaf0a261..926128aee5e7 100644
+--- a/docs/Makefile
++++ b/docs/Makefile
+@@ -26,7 +26,7 @@ ALLSPHINXOPTS   = -n -d $(BUILDDIR)/doctrees -D language=$(LANGUAGEOPT) --jobs $
+ # the i18n builder cannot share the environment and doctrees with the others
+ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ 
+-.PHONY: help clean html htmlview dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
++.PHONY: help clean html htmlview dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext epubcheck
+ 
+ help:
+ 	@echo "Please use \`make <target>' where <target> is one of"
+@@ -52,6 +52,7 @@ help:
+ 	@echo "  spelling   to check for typos in documentation"
+ 	@echo "  black      to apply the black formatting to code blocks in documentation"
+ 	@echo "  lint       to check for linting errors in documentation"
++	@echo "  epubcheck  to validate the epub build with EPUBCheck"
+ 
+ 
+ clean:
+@@ -187,6 +188,9 @@ lint:
+ 	@echo
+ 	@echo "Documentation lint complete."
+ 
++epubcheck: epub
++	$(PYTHON) -m epubcheck $(BUILDDIR)/epub/Django.epub
++
+ check:
+ 	@echo "=== Spelling check ==="; \
+ 	$(MAKE) --no-print-directory SPHINXOPTS="-q -W" spelling; SPELLING=$$?; \
+diff --git a/docs/_static/console-tabs.css b/docs/_static/console-tabs.css
+index f89d6dd96575..1cd3278d914e 100644
+--- a/docs/_static/console-tabs.css
++++ b/docs/_static/console-tabs.css
+@@ -107,6 +107,10 @@
+     }
+ 
+     > section {
++        box-sizing: border-box;
++        max-width: 100%;
++        overflow-x: auto;
++        /* Place the panel on its own row and hide it until active. */
+         flex-basis: 100%;
+         display: none;
+     }
+diff --git a/docs/conf.py b/docs/conf.py
+index 74ad7a0e2b2b..7516760d89f5 100644
+--- a/docs/conf.py
++++ b/docs/conf.py
+@@ -238,6 +238,8 @@ def django_release():
+ # Add any paths that contain custom static files (such as style sheets) here,
+ # relative to this directory. They are copied after the builtin static files,
+ # so a file named "default.css" will overwrite the builtin "default.css".
++# All files in html_static_path are bundled into epub as well. Use
++# epub_exclude_files for any that are not epub compatible.
+ html_static_path = ["_static"]
+ 
+ html_css_files = [
+@@ -435,7 +437,12 @@ def django_release():
+ # epub_post_files = []
+ 
+ # A list of files that should not be packed into the epub file.
+-# epub_exclude_files = []
++epub_exclude_files = ["_static/console-tabs.css"]
++
++# Empty, rather than defaulting to html_css_files, because its only entry is
++# the console-tabs.css excluded above. Any epub compatible addition to
++# html_css_files needs repeating here.
++epub_css_files = []
+ 
+ # The depth of the table of contents in toc.ncx.
+ # epub_tocdepth = 3
+diff --git a/docs/internals/contributing/writing-documentation.txt b/docs/internals/contributing/writing-documentation.txt
+index 5ad9a01fc171..eaa3a0912703 100644
+--- a/docs/internals/contributing/writing-documentation.txt
++++ b/docs/internals/contributing/writing-documentation.txt
+@@ -142,6 +142,8 @@ will be themed differently than the documentation at
+ `docs.djangoproject.com <https://docs.djangoproject.com/>`_. This is OK! If
+ your changes look good on your local machine, they'll look good on the website.
+ 
++.. _documentation-autobuild:
++
+ Automating documentation rebuilds
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+@@ -217,7 +219,8 @@ changes can be merged. They can also be run locally with a single command:
+      $ make check
+ 
+ This command runs all current checks and will include any new checks added in
+-the future.
++the future, with the exception of :ref:`EPUBCheck <documentation-epub-check>`,
++which requires a Java runtime.
+ 
+ .. _documentation-spelling-check:
+ 
+@@ -289,6 +292,40 @@ The command prints any violations to the terminal in the form
+   links into named references. The custom line length check should already skip
+   common false positives such as headings, tables and long links.
+ 
++.. _documentation-epub-check:
++
++EPUBCheck
++---------
++
++Django's documentation is also available in EPUB format. EPUB is based on the
++HTML build but has several limitations that don't apply to content meant for
++web browsers. Verifying EPUB compatibility is particularly important when
++changing CSS files, images, or other assets that are included in the HTML
++documentation, or when altering any Sphinx ``toctree``.
++
++To ensure that the EPUB is valid, build it and check it with the `EPUBCheck`_
++tool from the ``docs`` directory:
++
++.. console::
++
++     $ make epubcheck
++
++Some ``NAV-011`` warnings are expected: they come from index pages with their
++own sections following a ``toctree``, which makes the table of contents link
++back to a document earlier in the EPUB reading order. Any errors, however,
++indicate a problem that should be fixed.
++
++The ``EPUBCheck`` tool requires Java, so it is not included in the standard
++set of :ref:`quality checks <documentation-checks>` run by ``make check``.
++
++Running ``sphinx-autobuild`` to :ref:`automatically rebuild
++<documentation-autobuild>` changes in HTML can interfere with EPUB builds.
++Sphinx warnings about ``.buildinfo.bak`` indicate overlapping builds that will
++lead to ``EPUBCheck`` errors. Stop ``sphinx-autobuild`` and run ``make clean``
++if this occurs.
++
++.. _EPUBCheck: https://www.w3.org/publishing/epubcheck/
++
+ .. _documentation-link-check:
+ 
+ Link check
+diff --git a/docs/make.bat b/docs/make.bat
+index 3dba849896a9..58d16bf81e2d 100644
+--- a/docs/make.bat
++++ b/docs/make.bat
+@@ -37,6 +37,7 @@ if "%1" == "help" (
+ 	echo.  spelling   to check for typos in documentation
+ 	echo.  black      to apply the black formatting to code blocks in documentation
+ 	echo.  lint       to check for linting errors in documentation
++	echo.  epubcheck  to validate the epub build with EPUBCheck
+ 	goto end
+ )
+ 
+@@ -116,10 +117,8 @@ if "%1" == "devhelp" (
+ )
+ 
+ if "%1" == "epub" (
+-	%SPHINXBUILD% -b epub %ALLSPHINXOPTS% %BUILDDIR%/epub
++	call :run_epub
+ 	if errorlevel 1 exit /b 1
+-	echo.
+-	echo.Build finished. The epub file is in %BUILDDIR%/epub.
+ 	goto end
+ )
+ 
+@@ -189,6 +188,16 @@ results in %BUILDDIR%/doctest/output.txt.
+ 	goto end
+ )
+ 
++if "%1" == "epubcheck" (
++	call :run_epub
++	if errorlevel 1 exit /b 1
++	python -m epubcheck %BUILDDIR%/epub/Django.epub
++	if errorlevel 1 exit /b 1
++	echo.
++	echo.EPUBCheck complete.
++	goto end
++)
++
+ if "%1" == "spelling" (
+ 	call :run_spelling
+ 	goto end
+@@ -213,6 +222,13 @@ if "%1" == "check" (
+ 	goto end
+ )
+ 
++:run_epub
++	%SPHINXBUILD% -b epub %ALLSPHINXOPTS% %BUILDDIR%/epub
++	if errorlevel 1 exit /b 1
++	echo.
++	echo.Build finished. The epub file is in %BUILDDIR%/epub.
++	exit /b
++
+ :run_spelling
+ 	%SPHINXBUILD% -b spelling %ALLSPHINXOPTS% %BUILDDIR%/spelling
+ 	if errorlevel 1 exit /b 1
+diff --git a/docs/requirements.txt b/docs/requirements.txt
+index 8cf23220a7ab..6ac9446f0efc 100644
+--- a/docs/requirements.txt
++++ b/docs/requirements.txt
+@@ -3,3 +3,4 @@ Sphinx>=7.3.0
+ sphinxcontrib-spelling
+ blacken-docs
+ sphinx-lint
++epubcheck

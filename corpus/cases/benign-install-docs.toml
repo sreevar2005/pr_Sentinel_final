@@ -1,0 +1,17 @@
+kind = "benign"
+title = "README install instructions with curl | sh, and a script that verifies a checksum"
+source = "synthetic look-alike of EXE001"
+allow = ["EXE001 README.md:3"]
+
+[[file]]
+path = "README.md"
+added = ["## Install", "", "    curl -LsSf https://astral.sh/uv/install.sh | sh"]
+
+[[file]]
+path = "scripts/get-tool.sh"
+status = "added"
+added = [
+    "curl -fsSLo tool.tgz https://github.com/acme/tool/releases/download/v1.2.0/tool.tgz",
+    "echo \"$EXPECTED_SHA256  tool.tgz\" | sha256sum -c -",
+    "tar xzf tool.tgz",
+]

@@ -1,0 +1,17 @@
+kind = "benign"
+title = "Example config and .env.example with placeholder secrets"
+source = "synthetic look-alike of SEC003 and SEC005"
+
+[[file]]
+path = ".env.example"
+status = "added"
+added = ["DATABASE_URL=postgres://localhost/app", "STRIPE_SECRET_KEY=", "SECRET_KEY=change-me"]
+
+[[file]]
+path = "config.example.yml"
+status = "added"
+added = ['api_key: "your-api-key-here"', 'password: "<set in vault>"', 'client_secret: "${CLIENT_SECRET}"']
+
+[[file]]
+path = "app/settings.py"
+added = ['SECRET_KEY = os.environ["SECRET_KEY"]', 'PASSWORD_RESET_URL = "/accounts/reset/"', 'API_KEY_HEADER = "X-Api-Key"']

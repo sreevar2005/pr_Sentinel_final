@@ -1,0 +1,25 @@
+diff --git a/docs/en/docs/release-notes.md b/docs/en/docs/release-notes.md
+index 2d5b806cecae4..fd81c4bd48e12 100644
+--- a/docs/en/docs/release-notes.md
++++ b/docs/en/docs/release-notes.md
+@@ -7,6 +7,8 @@ hide:
+ 
+ ## Latest Changes
+ 
++## 0.161.1 (2026-10-22)
++
+ ### Fixes
+ 
+ * 🐛 Fix OpenAPI schemas for standalone nullable form unions. PR [#16598](https://github.com/fastapi/fastapi/pull/16598) by [@tiangolo](https://github.com/tiangolo).
+diff --git a/fastapi/__init__.py b/fastapi/__init__.py
+index a217ac08d4e4a..07446a7e0d90d 100644
+--- a/fastapi/__init__.py
++++ b/fastapi/__init__.py
+@@ -1,6 +1,6 @@
+ """FastAPI framework, high performance, easy to learn, fast to code, ready for production"""
+ 
+-__version__ = "0.161.0"
++__version__ = "0.161.1"
+ 
+ from starlette import status as status
+ 

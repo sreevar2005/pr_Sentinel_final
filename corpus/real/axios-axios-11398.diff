@@ -1,0 +1,57 @@
+diff --git a/.github/workflows/release-branch.yml b/.github/workflows/release-branch.yml
+index 37a6af37d3..f7f7e97af7 100644
+--- a/.github/workflows/release-branch.yml
++++ b/.github/workflows/release-branch.yml
+@@ -15,7 +15,7 @@ on:
+ jobs:
+   ci:
+     name: Test (Node ${{ matrix.node-version }})
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     permissions:
+       contents: read
+ 
+@@ -45,7 +45,7 @@ jobs:
+ 
+   bump-version-and-create-pr:
+     name: Bump version and create PR v0.x
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     needs: ci
+     permissions:
+       contents: write
+diff --git a/.github/workflows/run-ci-v0.yml b/.github/workflows/run-ci-v0.yml
+index d2503d5f9d..870189ab2d 100644
+--- a/.github/workflows/run-ci-v0.yml
++++ b/.github/workflows/run-ci-v0.yml
+@@ -14,7 +14,7 @@ concurrency:
+ 
+ jobs:
+   ci:
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+ 
+     strategy:
+       matrix:
+@@ -36,6 +36,8 @@ jobs:
+         run: npm ci --ignore-scripts
+       - name: Build project
+         run: npm run build
++      - name: Setup Firefox
++        uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795 # v1.7.2
+       - name: Run tests
+         run: npm run test
+       - name: Dependency Review
+diff --git a/.github/workflows/zizmor.yml b/.github/workflows/zizmor.yml
+index e01c6ef59e..5c67450d5b 100644
+--- a/.github/workflows/zizmor.yml
++++ b/.github/workflows/zizmor.yml
+@@ -10,7 +10,7 @@ permissions: {}
+ 
+ jobs:
+   zizmor:
+-    runs-on: ubuntu-latest
++    runs-on: namespace-profile-axios
+     permissions:
+       security-events: write
+     steps:

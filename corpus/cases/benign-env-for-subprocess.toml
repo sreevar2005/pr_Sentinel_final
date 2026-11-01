@@ -1,0 +1,16 @@
+kind = "benign"
+title = "Environment copied for a child process and single variables read"
+source = "synthetic look-alike of NET004"
+
+[[file]]
+path = "tools/run.py"
+added = [
+    'env = {**os.environ, "LANG": "C"}',
+    "env2 = os.environ.copy()",
+    'token = os.environ.get("GITHUB_TOKEN")',
+    'debug = str(os.environ.get("DEBUG", "0"))',
+]
+
+[[file]]
+path = "scripts/spawn.js"
+added = ["const child = spawn('node', ['worker.js'], { env: { ...process.env, NODE_ENV: 'test' } });"]

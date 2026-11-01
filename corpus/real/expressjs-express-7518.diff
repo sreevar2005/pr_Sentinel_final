@@ -1,0 +1,112 @@
+diff --git a/package.json b/package.json
+index c2cd32712d2..a7fae5a21b0 100644
+--- a/package.json
++++ b/package.json
+@@ -76,7 +76,7 @@
+     "morgan": "1.12.1",
+     "nyc": "^17.1.0",
+     "pbkdf2-password": "1.2.1",
+-    "supertest": "^7.3.0",
++    "supertest": "^6.3.0",
+     "vhost": "~3.0.2"
+   },
+   "engines": {
+diff --git a/test/acceptance/downloads.js b/test/acceptance/downloads.js
+index 3e143f3edcb..3deed3e0cc7 100644
+--- a/test/acceptance/downloads.js
++++ b/test/acceptance/downloads.js
+@@ -1,7 +1,6 @@
+ 
+ var app = require('../../examples/downloads')
+   , request = require('supertest');
+-var utils = require('../support/utils');
+ 
+ describe('downloads', function(){
+   describe('GET /', function(){
+@@ -40,7 +39,8 @@ describe('downloads', function(){
+ 
+   describe('GET /files/../index.js', function () {
+     it('should respond with 403', function (done) {
+-      utils.getRawPath(request(app), '/files/../index.js')
++      request(app)
++        .get('/files/../index.js')
+         .expect(403, done)
+     })
+   })
+diff --git a/test/express.static.js b/test/express.static.js
+index 9d88f5fb235..a2035631d66 100644
+--- a/test/express.static.js
++++ b/test/express.static.js
+@@ -81,7 +81,8 @@ describe('express.static()', function () {
+     })
+ 
+     it('should support ../', function (done) {
+-      utils.getRawPath(request(this.app), '/users/../todo.txt')
++      request(this.app)
++        .get('/users/../todo.txt')
+         .expect(200, '- groceries', done)
+     })
+ 
+@@ -268,7 +269,8 @@ describe('express.static()', function () {
+       })
+ 
+       it('should fall-through when traversing past root', function (done) {
+-        utils.getRawPath(request(this.app), '/users/../../todo.txt')
++        request(this.app)
++          .get('/users/../../todo.txt')
+           .expect(404, 'Not Found', done)
+       })
+ 
+@@ -342,7 +344,8 @@ describe('express.static()', function () {
+       })
+ 
+       it('should 403 when traversing past root', function (done) {
+-        utils.getRawPath(request(this.app), '/users/../../todo.txt')
++        request(this.app)
++          .get('/users/../../todo.txt')
+           .expect(403, /ForbiddenError/, done)
+       })
+ 
+@@ -575,12 +578,14 @@ describe('express.static()', function () {
+     })
+ 
+     it('should catch urlencoded ../', function (done) {
+-      utils.getRawPath(request(this.app), '/users/%2e%2e/%2e%2e/todo.txt')
++      request(this.app)
++        .get('/users/%2e%2e/%2e%2e/todo.txt')
+         .expect(403, done)
+     })
+ 
+     it('should not allow root path disclosure', function (done) {
+-      utils.getRawPath(request(this.app), '/users/../../fixtures/todo.txt')
++      request(this.app)
++        .get('/users/../../fixtures/todo.txt')
+         .expect(403, done)
+     })
+   })
+diff --git a/test/support/utils.js b/test/support/utils.js
+index 4b892accd59..fb816b08000 100644
+--- a/test/support/utils.js
++++ b/test/support/utils.js
+@@ -17,21 +17,6 @@ exports.shouldHaveHeader = shouldHaveHeader
+ exports.shouldNotHaveBody = shouldNotHaveBody
+ exports.shouldNotHaveHeader = shouldNotHaveHeader;
+ exports.shouldSkipQuery = shouldSkipQuery
+-exports.getRawPath = getRawPath
+-
+-/**
+- * Send a GET request without URL dot-segment normalization.
+- *
+- * @param {object} agent SuperTest request factory
+- * @param {string} path Request path
+- * @returns {object} SuperTest request
+- */
+-
+-function getRawPath (agent, path) {
+-  return agent.get(path).on('request', function (test) {
+-    test.req.path = path
+-  })
+-}
+ 
+ /**
+  * Assert that a supertest response has a specific body.

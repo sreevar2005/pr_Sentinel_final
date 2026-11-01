@@ -1,0 +1,10 @@
+kind = "risky"
+title = "Requirement with a one-letter typo of a top PyPI package"
+source = "synthetic; typosquats of requests have been published repeatedly"
+expect = ["DEP001 requirements.txt:3", "DEP002 requirements.txt:3"]
+allow = ["DEP001 requirements.txt:2"]
+
+[[file]]
+path = "requirements.txt"
+removed = ["flask==3.0.3"]
+added = ["flask==3.0.3", "gunicorn==22.0.0", "reqeusts==2.32.3"]

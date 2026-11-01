@@ -1,0 +1,12 @@
+kind = "risky"
+title = "Lockfile edit swaps a tarball URL without touching package.json"
+source = "synthetic; technique described by Liran Tal (lockfile-lint, 2019)"
+expect = ["DEP004 package-lock.json", "DEP005 package-lock.json:2"]
+
+[[file]]
+path = "package-lock.json"
+removed = ['      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz",']
+added = [
+    '      "version": "4.17.21",',
+    '      "resolved": "https://registry.npmjs-cdn.co/lodash/-/lodash-4.17.21.tgz",',
+]

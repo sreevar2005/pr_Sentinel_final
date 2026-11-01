@@ -1,0 +1,27 @@
+kind = "risky"
+title = "pull_request_target workflow builds the PR's own code with secrets available"
+source = "recreation of the 'pwn request' pattern (GitHub Security Lab, 2021)"
+expect = [
+    "CI001 .github/workflows/preview.yml:3",
+    "CI002 .github/workflows/preview.yml:10",
+]
+allow = ["PATH001 .github/workflows/preview.yml"]
+
+[[file]]
+path = ".github/workflows/preview.yml"
+status = "added"
+added = [
+    "name: Preview",
+    "on:",
+    "  pull_request_target:",
+    "jobs:",
+    "  build:",
+    "    runs-on: ubuntu-latest",
+    "    steps:",
+    "      - uses: actions/checkout@v4",
+    "        with:",
+    "          ref: ${{ github.event.pull_request.head.sha }}",
+    "      - run: npm ci && npm run build",
+    "        env:",
+    "          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}",
+]

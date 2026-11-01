@@ -1,0 +1,11 @@
+kind = "benign"
+title = "Emoji joined with zero-width joiners, and a file that starts with a byte order mark"
+source = "synthetic look-alike of OBF002"
+
+[[file]]
+path = "app/reactions.py"
+status = "added"
+added = [
+    "\uFEFFFAMILY = \"\U0001F468{{ZWJ}}\U0001F469{{ZWJ}}\U0001F467\"",
+    "TECHNOLOGIST = \"\U0001F469{{ZWJ}}\U0001F4BB\"",
+]

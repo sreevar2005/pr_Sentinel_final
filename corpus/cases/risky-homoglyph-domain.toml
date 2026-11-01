@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Redirect allow-list gains a domain spelled with a Cyrillic letter"
+source = "synthetic; IDN homograph attack"
+expect = ["OBF003 app/redirects.py:3"]
+
+[[file]]
+path = "app/redirects.py"
+removed = ['    "paypal.com",']
+added = ['    "paypal.com",', '    "www.paypal.com",', '    "p{{CYRILLIC_A}}ypal.com",']

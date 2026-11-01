@@ -1,0 +1,15 @@
+kind = "benign"
+title = "Ordinary pull_request CI that checks out the default ref"
+source = "synthetic look-alike of CI001 and CI002"
+allow = ["PATH001 .github/workflows/test.yml"]
+
+[[file]]
+path = ".github/workflows/test.yml"
+removed = ["      - run: pytest"]
+added = [
+    "on: [pull_request]",
+    "      - uses: actions/checkout@v4",
+    "        with:",
+    "          fetch-depth: 0",
+    "      - run: pytest -q",
+]

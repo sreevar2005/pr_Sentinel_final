@@ -1,0 +1,13 @@
+kind = "benign"
+title = "Python version bumps, including an underscore spelling of a popular package"
+source = "synthetic look-alike of DEP001 and DEP002"
+
+[[file]]
+path = "requirements.txt"
+removed = ["requests==2.31.0", "python-dateutil==2.8.2"]
+added = ["requests==2.32.3", "python_dateutil==2.9.0"]
+
+[[file]]
+path = "pyproject.toml"
+removed = ['    "pydantic>=2.6",']
+added = ['    "pydantic>=2.9",']

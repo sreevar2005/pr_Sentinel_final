@@ -1,0 +1,13 @@
+kind = "benign"
+title = "package.json scripts: husky prepare, tests and a version bump"
+source = "synthetic look-alike of EXE005 and DEP001"
+
+[[file]]
+path = "package.json"
+removed = ['    "express": "^4.19.2",', '    "test": "jest",']
+added = [
+    '    "express": "^4.21.1",',
+    '    "test": "jest --coverage",',
+    '    "prepare": "husky",',
+    '    "build": "tsc -p .",',
+]

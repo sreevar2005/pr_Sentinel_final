@@ -1,0 +1,13 @@
+diff --git a/doc/en/getting-started.rst b/doc/en/getting-started.rst
+index f8deae77e3e..a5e2e8124ab 100644
+--- a/doc/en/getting-started.rst
++++ b/doc/en/getting-started.rst
+@@ -39,7 +39,7 @@ Create a new file called ``test_sample.py``, containing a function, and a test:
+     def test_answer():
+         assert func(3) == 5
+ 
+-The test
++Run the test:
+ 
+ .. code-block:: pytest
+ 

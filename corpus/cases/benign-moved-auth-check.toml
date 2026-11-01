@@ -1,0 +1,8 @@
+kind = "benign"
+title = "Auth decorator moved to a different view in the same file"
+source = "synthetic look-alike of CFG005"
+
+[[file]]
+path = "reports/views.py"
+removed = ["@login_required", "def export_users(request):", "    ...", "def index(request):"]
+added = ["def export_users(request):", "    ...", "@login_required", "def index(request):"]

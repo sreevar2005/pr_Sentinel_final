@@ -1,0 +1,91 @@
+diff --git a/args.go b/args.go
+index ed1e70cea..7bf8c389f 100644
+--- a/args.go
++++ b/args.go
+@@ -65,6 +65,19 @@ func OnlyValidArgs(cmd *Command, args []string) error {
+ 	return nil
+ }
+ 
++// NoDuplicateArgs returns an error if there are any duplicate positional args.
++func NoDuplicateArgs(cmd *Command, args []string) error {
++	seen := make(map[string]struct{}, len(args))
++	for _, arg := range args {
++		if _, ok := seen[arg]; ok {
++			return fmt.Errorf("duplicate argument %q for %q", arg, cmd.CommandPath())
++		}
++		seen[arg] = struct{}{}
++	}
++
++	return nil
++}
++
+ // ArbitraryArgs never returns an error.
+ func ArbitraryArgs(cmd *Command, args []string) error {
+ 	return nil
+diff --git a/args_test.go b/args_test.go
+index 90d174cce..7d75e16c4 100644
+--- a/args_test.go
++++ b/args_test.go
+@@ -107,6 +107,17 @@ func rangeArgsWithInvalidCount(err error, t *testing.T) {
+ 	}
+ }
+ 
++func noDuplicateArgsWithDuplicate(err error, t *testing.T, arg string) {
++	if err == nil {
++		t.Fatal("Expected an error")
++	}
++	got := err.Error()
++	expected := `duplicate argument "` + arg + `" for "c"`
++	if got != expected {
++		t.Errorf("Expected: %q, got: %q", expected, got)
++	}
++}
++
+ // NoArgs
+ 
+ func TestNoArgs(t *testing.T) {
+@@ -153,6 +164,32 @@ func TestOnlyValidArgs_WithInvalidArgs(t *testing.T) {
+ 	validOnlyWithInvalidArgs(err, t)
+ }
+ 
++// NoDuplicateArgs
++
++func TestNoDuplicateArgs(t *testing.T) {
++	c := getCommand(NoDuplicateArgs, false)
++	output, err := executeCommand(c, "one", "two")
++	expectSuccess(output, err, t)
++}
++
++func TestNoDuplicateArgs_WithDuplicateArgs(t *testing.T) {
++	c := getCommand(NoDuplicateArgs, false)
++	_, err := executeCommand(c, "one", "one")
++	noDuplicateArgsWithDuplicate(err, t, "one")
++}
++
++func TestNoDuplicateArgs_WithValid_WithDuplicateArgs(t *testing.T) {
++	c := getCommand(NoDuplicateArgs, true)
++	_, err := executeCommand(c, "one", "one")
++	noDuplicateArgsWithDuplicate(err, t, "one")
++}
++
++func TestNoDuplicateArgs_WithValidOnly_WithInvalidArgs(t *testing.T) {
++	c := getCommand(MatchAll(OnlyValidArgs, NoDuplicateArgs), true)
++	_, err := executeCommand(c, "a", "a")
++	validOnlyWithInvalidArgs(err, t)
++}
++
+ // ArbitraryArgs
+ 
+ func TestArbitraryArgs(t *testing.T) {
+diff --git a/site/content/user_guide.md b/site/content/user_guide.md
+index d339185c0..c02b58dcc 100644
+--- a/site/content/user_guide.md
++++ b/site/content/user_guide.md
+@@ -447,6 +447,7 @@ The following validators are built in:
+   - `RangeArgs(min, max)` - report an error if the number of args is not between `min` and `max`.
+ - Content of the arguments:
+   - `OnlyValidArgs` - report an error if there are any positional args not specified in the `ValidArgs` field of `Command`, which can optionally be set to a list of valid values for positional args.
++  - `NoDuplicateArgs` - report an error if any positional argument value is provided more than once.
+ 
+ If `Args` is undefined or `nil`, it defaults to `ArbitraryArgs`.
+ 

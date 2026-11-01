@@ -1,0 +1,10 @@
+kind = "risky"
+title = "Authorization bug introduced by changing 'and' to 'or'"
+source = "synthetic"
+known_limitation = "Logic changes in otherwise normal code have no syntactic signature. This is the job of the optional AI layer (stage 5) and of human review."
+expect = ["CFG005 app/export.py"]
+
+[[file]]
+path = "app/export.py"
+removed = ['    return user.org_id == org.id and user.role == "admin"']
+added = ['    return user.org_id == org.id or user.role != "admin"']

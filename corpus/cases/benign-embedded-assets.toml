@@ -1,0 +1,17 @@
+kind = "benign"
+title = "Inline data-URI image, SRI hash and short test vectors"
+source = "synthetic look-alike of OBF004"
+
+[[file]]
+path = "web/logo.js"
+added = [
+    "export const LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AoQDRIXq9DNTAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAA';",
+]
+
+[[file]]
+path = "web/index.html"
+added = ['<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>']
+
+[[file]]
+path = "tests/test_hash.py"
+added = ['assert sha256(b"abc").hexdigest() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"']

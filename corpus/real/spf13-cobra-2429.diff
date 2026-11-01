@@ -1,0 +1,60 @@
+diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
+index a7bf8c4f3..68b1ab0f4 100644
+--- a/.github/workflows/test.yml
++++ b/.github/workflows/test.yml
+@@ -71,6 +71,11 @@ jobs:
+         - 24
+     name: '${{ matrix.platform }} | 1.${{ matrix.go }}.x'
+     runs-on: ${{ matrix.platform }}-latest
++    # macOS runner environments require compiled binaries to contain an LC_UUID load command.
++    # Go 1.24+ natively resolves this by writing LC_UUID in Go's internal linker.
++    # For Go < 1.24, we pass -ldflags=-linkmode=external on macOS to force external linking via the system linker.
++    env:
++      GO_TEST_FLAGS: ${{ matrix.platform == 'macOS' && matrix.go < 24 && '-ldflags=-linkmode=external' || '' }}
+     steps:
+ 
+     - uses: actions/checkout@v4
+diff --git a/.golangci.yml b/.golangci.yml
+index 104dc2440..25967a9ff 100644
+--- a/.golangci.yml
++++ b/.golangci.yml
+@@ -57,6 +57,21 @@ linters:
+       - common-false-positives
+       - legacy
+       - std-error-handling
++    warn-unused: true
++    rules:
++      - path: '_test\.go'
++        linters:
++          - goconst
++      - linters:
++          - goconst
++        text: 'string `(true|bash|zsh|fish|powershell)`'
++      # Some Go/staticcheck versions in the test matrix don't trigger staticcheck warnings
++      # on type assertions/LHS variables in test files, while others do.
++      # To avoid build failures on both sides, we allow unused staticcheck nolints in test files.
++      - path: '_test\.go'
++        linters:
++          - nolintlint
++        text: 'directive `//nolint:staticcheck` is unused'
+   settings:
+     govet:
+       # Disable buildtag check to allow dual build tag syntax (both //go:build and // +build).
+diff --git a/Makefile b/Makefile
+index 0da8d7aa0..c18896f8c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -21,11 +21,11 @@ lint:
+ 
+ test: install_deps
+ 	$(info ******************** running tests ********************)
+-	go test -v ./...
++	go test -v $(GO_TEST_FLAGS) ./...
+ 
+ richtest: install_deps
+ 	$(info ******************** running tests with kyoh86/richgo ********************)
+-	richgo test -v ./...
++	richgo test -v $(GO_TEST_FLAGS) ./...
+ 
+ install_deps:
+ 	$(info ******************** downloading dependencies ********************)

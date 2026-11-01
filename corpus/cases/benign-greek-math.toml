@@ -1,0 +1,7 @@
+kind = "benign"
+title = "Numerical code using Greek letters and a Russian UI string"
+source = "synthetic look-alike of OBF003"
+
+[[file]]
+path = "model/optim.py"
+added = ["def step(θ, α=0.01, λ=1e-4):", "    return θ - α * (grad(θ) + λ * θ)", 'LABEL_RU = "Привет, мир"']

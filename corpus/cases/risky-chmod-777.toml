@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Container makes the app directory world-writable"
+source = "synthetic"
+expect = ["CFG004 Dockerfile:2"]
+
+[[file]]
+path = "Dockerfile"
+removed = ["COPY . /app"]
+added = ["COPY . /app", "RUN chmod -R 777 /app"]

@@ -1,0 +1,15 @@
+kind = "benign"
+title = "Files whose names only resemble security modules"
+source = "synthetic look-alike of PATH004"
+
+[[file]]
+path = "src/authors.py"
+added = ["AUTHORS = ['Ada', 'Grace']"]
+
+[[file]]
+path = "src/nlp/tokenizer.py"
+added = ["def split(text): return text.split()"]
+
+[[file]]
+path = "src/sessionize_logs.py"
+added = ["WINDOW = 30"]

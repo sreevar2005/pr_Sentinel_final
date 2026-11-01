@@ -1,0 +1,11 @@
+kind = "benign"
+title = "model.eval(), literal_eval, regex exec and an eval mentioned in a comment"
+source = "synthetic look-alike of EXE002"
+
+[[file]]
+path = "train/loop.py"
+added = ["model.eval()", "cfg = ast.literal_eval(text)", "# never call eval() on user input", "score = evaluator.evaluate(batch)"]
+
+[[file]]
+path = "web/parse.js"
+added = ["const m = /^v(\\d+)/.exec(version);", "const result = pattern.exec(line);"]

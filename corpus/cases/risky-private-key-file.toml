@@ -1,0 +1,10 @@
+kind = "risky"
+title = "Deploy SSH private key added to the repository"
+source = "synthetic"
+expect = ["SEC001 deploy/id_rsa:1", "SEC005 deploy/id_rsa"]
+
+[[file]]
+path = "deploy/id_rsa"
+status = "added"
+mode = "100600"
+added = ["{{PRIVATE_KEY}}", "MIIEowIBAAKCAQEAu1SU1LfVLPHCozMxH2Mo4lgOEePzNm0tRgeLezV6ffAt0gun", "-----END RSA PRIVATE KEY-----"]

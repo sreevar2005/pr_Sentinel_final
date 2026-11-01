@@ -1,0 +1,18 @@
+kind = "risky"
+title = "CODEOWNERS edit removes the security team from the auth module in the same PR"
+source = "synthetic"
+expect = [
+    "PATH002 .github/CODEOWNERS",
+    "PATH004 src/auth/tokens.py",
+    "CFG005 src/auth/tokens.py",
+]
+
+[[file]]
+path = ".github/CODEOWNERS"
+removed = ["/src/auth/ @acme/security"]
+added = []
+
+[[file]]
+path = "src/auth/tokens.py"
+removed = ["    return hmac.compare_digest(expected, provided)"]
+added = ["    return expected == provided"]

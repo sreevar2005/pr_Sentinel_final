@@ -16,7 +16,7 @@ from prscreen.models import Confidence, Finding, Rule, Severity
 CODE_SUFFIXES = frozenset(
     ".py .pyw .pyi .js .mjs .cjs .jsx .ts .mts .cts .tsx .vue .svelte .go .rb .php .java .kt .kts "
     ".scala .groovy .gradle .cs .vb .fs .c .cc .cpp .cxx .h .hh .hpp .rs .swift .m .mm .dart .ex .exs "
-    ".erl .lua .pl .pm .r .jl .sh .bash .zsh .fish .ps1 .psm1 .psd1 .bat .cmd .vbs .tf .hcl".split()
+    ".erl .lua .pl .pm .r .jl .sh .bash .zsh .fish .ps1 .psm1 .psd1 .bat .cmd .vbs .tf .hcl .pth .m4".split()
 )
 CONFIG_SUFFIXES = frozenset(".yml .yaml .json .jsonc .toml .ini .cfg .conf .properties .xml .env".split())
 DOC_SUFFIXES = frozenset(".md .markdown .rst .txt .adoc .asciidoc .org .tex .rtf".split())

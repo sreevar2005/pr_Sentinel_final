@@ -1,0 +1,9 @@
+kind = "risky"
+title = "crossenv instead of cross-env"
+source = "recreation of the crossenv typosquat (npm, 2017)"
+expect = ["DEP001 package.json:2", "DEP002 package.json:2"]
+
+[[file]]
+path = "package.json"
+removed = ['  "devDependencies": {']
+added = ['  "devDependencies": {', '    "crossenv": "^6.1.1",']

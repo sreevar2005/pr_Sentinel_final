@@ -1,0 +1,13 @@
+diff --git a/docs/releases/6.1.txt b/docs/releases/6.1.txt
+index 2ea76b7c5a92..48862c40ae0b 100644
+--- a/docs/releases/6.1.txt
++++ b/docs/releases/6.1.txt
+@@ -115,7 +115,7 @@ You can select a mailer with the new ``using`` argument to :ref:`email sending
+ 
+ :setting:`MAILERS` is not yet enabled by default in existing projects. It will
+ replace :setting:`EMAIL_BACKEND` and related ``EMAIL_*`` settings in Django
+-7.0. Until then, the older settings will continue to work but will issue
++2028. Until then, the older settings will continue to work but will issue
+ deprecation warnings: see the list of :ref:`email deprecations
+ <mailers-deprecations>` below.
+ 

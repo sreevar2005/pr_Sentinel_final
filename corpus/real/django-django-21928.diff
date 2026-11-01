@@ -1,0 +1,490 @@
+diff --git a/AUTHORS b/AUTHORS
+index 4b632d96e94c..276aacde8c40 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -441,6 +441,7 @@ answer newbie questions, and generally made Django that much better:
+     Hasan Ramezani <hasan.r67@gmail.com>
+     Hawkeye
+     Helen Sherwood-Taylor <helen@rrdlabs.co.uk>
++    HelmiDev03 <helmipaty@gmail.com>
+     Henrique Romano <onaiort@gmail.com>
+     Henry Dang <henrydangprg@gmail.com>
+     Hidde Bultsma
+diff --git a/django/test/utils.py b/django/test/utils.py
+index 19088532ad8e..a712150278e7 100644
+--- a/django/test/utils.py
++++ b/django/test/utils.py
+@@ -758,18 +758,51 @@ def __exit__(self, exc_type, exc_value, traceback):
+ 
+ 
+ class ignore_warnings(TestContextDecorator):
+-    def __init__(self, **kwargs):
+-        self.ignore_kwargs = kwargs
+-        if "message" in self.ignore_kwargs or "module" in self.ignore_kwargs:
+-            self.filter_func = warnings.filterwarnings
+-        else:
+-            self.filter_func = warnings.simplefilter
++    """
++    Ignore warnings matching the given criteria, as a decorator or context
++    manager.
++
++    Use the optional `message` argument to match a literal, case-sensitive
++    substring of the warning message. Alternatively, use the optional
++    `message_re` argument to match a case-insensitive regular expression at
++    the start of the warning message.
++
++    The optional `category`, `module`, and `lineno` arguments are passed to
++    warnings.filterwarnings().
++    """
++
++    def __init__(
++        self,
++        category=None,
++        message=None,
++        *,
++        module=None,
++        lineno=None,
++        message_re=None,
++    ):
++        if message is not None and message_re is not None:
++            raise TypeError("Cannot specify both message and message_re.")
++
++        self.ignore_kwargs = {}
++        if category is not None:
++            self.ignore_kwargs["category"] = category
++        if message is not None:
++            # Allow any prefix, including newlines, and disable the
++            # case-insensitive matching used by warnings.filterwarnings().
++            self.ignore_kwargs["message"] = rf"(?s:.*)(?-i:{re.escape(message)})"
++        if message_re is not None:
++            self.ignore_kwargs["message"] = message_re
++        if module is not None:
++            self.ignore_kwargs["module"] = module
++        if lineno is not None:
++            self.ignore_kwargs["lineno"] = lineno
++
+         super().__init__()
+ 
+     def enable(self):
+         self.catch_warnings = warnings.catch_warnings()
+         self.catch_warnings.__enter__()
+-        self.filter_func("ignore", **self.ignore_kwargs)
++        warnings.filterwarnings("ignore", **self.ignore_kwargs)
+ 
+     def disable(self):
+         self.catch_warnings.__exit__(*sys.exc_info())
+diff --git a/docs/releases/6.2.txt b/docs/releases/6.2.txt
+index bb519474a7c3..12c0445e4e45 100644
+--- a/docs/releases/6.2.txt
++++ b/docs/releases/6.2.txt
+@@ -412,6 +412,10 @@ Tests
+ 
+ * The undocumented ``django.test.selenium`` module was removed.
+ 
++* The undocumented ``django.test.ignore_warnings()`` now matches its
++  ``message`` argument as a literal, case-sensitive substring of the warning
++  message. Use the new ``message_re`` argument for the previous behavior.
++
+ Dropped support for PostgreSQL 15
+ ---------------------------------
+ 
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index e4b6e70aa252..5279ccc71742 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -888,7 +888,7 @@ def test_annotate_select_related(self):
+         # queryset and assertion can be removed.
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             qs = (
+                 Book.objects.filter(rating__lt=4.5)
+diff --git a/tests/defer/tests.py b/tests/defer/tests.py
+index 13d1aa1b4fad..bb7dfbf0911c 100644
+--- a/tests/defer/tests.py
++++ b/tests/defer/tests.py
+@@ -154,7 +154,7 @@ def test_defer_foreign_keys_are_deferred_and_not_traversed(self):
+         with self.assertNumQueries(1):
+             with ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=r"Calling select_related\(\) with no arguments is deprecated\.",
++                message="Calling select_related() with no arguments is deprecated.",
+             ):
+                 obj = Primary.objects.defer("related").select_related()[0]
+             self.assert_delayed(obj, 1)
+@@ -338,7 +338,7 @@ def test_defer_proxy(self):
+         ChildProxy.objects.create(name="p1", value="xx", related=related)
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             children = ChildProxy.objects.select_related().only("id", "name")
+         self.assertEqual(len(children), 1)
+diff --git a/tests/gis_tests/relatedapp/tests.py b/tests/gis_tests/relatedapp/tests.py
+index ba96e685edba..ee3aff1085d8 100644
+--- a/tests/gis_tests/relatedapp/tests.py
++++ b/tests/gis_tests/relatedapp/tests.py
+@@ -21,7 +21,7 @@ def test02_select_related(self):
+         # queryset can be removed.
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             qs2 = City.objects.order_by("id").select_related()
+         qs3 = City.objects.order_by("id").select_related("location")
+diff --git a/tests/mail/__init__.py b/tests/mail/__init__.py
+index ae17b79ca1c8..0e327543b52a 100644
+--- a/tests/mail/__init__.py
++++ b/tests/mail/__init__.py
+@@ -32,7 +32,7 @@ def __init__(self, **kwargs):
+                 re.escape("{name}"), rf"(?:{deprecated_names_re})"
+             )
+             self.ignore_warnings = ignore_warnings(
+-                category=RemovedInDjango2028Warning, message=message_re
++                category=RemovedInDjango2028Warning, message_re=message_re
+             )
+         else:
+             self.ignore_warnings = nullcontext()
+@@ -50,5 +50,5 @@ def disable(self):
+ def ignore_no_default_mailer_warning():
+     return ignore_warnings(
+         category=RemovedInDjango2028Warning,
+-        message=re.escape(NO_DEFAULT_MAILER_WARNING),
++        message=NO_DEFAULT_MAILER_WARNING,
+     )
+diff --git a/tests/mail/test_backends.py b/tests/mail/test_backends.py
+index 78d5bcfbf524..37fbf16c7731 100644
+--- a/tests/mail/test_backends.py
++++ b/tests/mail/test_backends.py
+@@ -1,5 +1,4 @@
+ import os
+-import re
+ import shutil
+ import socket
+ import ssl
+@@ -236,9 +235,7 @@ def test_unknown_kwargs_ignored(self):
+             self.assertWarnsMessage(RemovedInDjango2028Warning, msg),
+             ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=re.escape(
+-                    "Directly creating EmailBackend instances is deprecated."
+-                ),
++                message="Directly creating EmailBackend instances is deprecated.",
+             ),
+         ):
+             # alias=None tells create_backend() to _omit_ the `alias` arg.
+@@ -320,7 +317,7 @@ def test_adds_sent_using_attribute(self):
+ 
+ @ignore_warnings(
+     category=RemovedInDjango2028Warning,
+-    message=r"The EMAIL_FILE_PATH setting is deprecated\.",
++    message="The EMAIL_FILE_PATH setting is deprecated.",
+ )
+ class FileBackendTests(SharedEmailBackendTests, SimpleTestCase):
+     backend_class = filebased.EmailBackend
+@@ -600,7 +597,7 @@ def flush_mailbox(self):
+ @skipUnless(HAS_AIOSMTPD, "No aiosmtpd library detected.")
+ @ignore_warnings(
+     category=RemovedInDjango2028Warning,
+-    message=r"The EMAIL_\w+ setting is deprecated\.",
++    message_re=r"The EMAIL_\w+ setting is deprecated\.",
+ )
+ class SMTPBackendTestsBase(SimpleTestCase):
+     @classmethod
+@@ -627,7 +624,7 @@ def stop_smtp(cls):
+ @skipUnless(HAS_AIOSMTPD, "No aiosmtpd library detected.")
+ @ignore_warnings(
+     category=RemovedInDjango2028Warning,
+-    message=re.escape("Directly creating EmailBackend instances is deprecated."),
++    message="Directly creating EmailBackend instances is deprecated.",
+ )
+ class SMTPBackendTests(SharedEmailBackendTests, SMTPBackendTestsBase):
+     backend_class = smtp.EmailBackend
+diff --git a/tests/mail/test_deprecated.py b/tests/mail/test_deprecated.py
+index d2ae1a479bde..3ba734dd26eb 100644
+--- a/tests/mail/test_deprecated.py
++++ b/tests/mail/test_deprecated.py
+@@ -288,7 +288,7 @@ def test_warn_about_no_default_mailer(self):
+             self.assertWarnsMessage(RemovedInDjango2028Warning, msg),
+             ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=re.escape("get_connection() is deprecated."),
++                message="get_connection() is deprecated.",
+             ),
+         ):
+             get_connection()
+diff --git a/tests/mail/tests.py b/tests/mail/tests.py
+index 886d5f7297fc..c55d1ca91474 100644
+--- a/tests/mail/tests.py
++++ b/tests/mail/tests.py
+@@ -3039,7 +3039,9 @@ def get_connection(self, *args, **kwargs):
+             ignore_no_default_mailer_warning(),
+             ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=re.escape("get_connection() is deprecated."),
++                # Matches only this deprecation, and not the warnings about
++                # positional arguments to get_connection().
++                message="get_connection() is deprecated. See 'Migrating email",
+             ),
+         ):
+             return mail.get_connection(*args, **kwargs)
+diff --git a/tests/model_fields/test_booleanfield.py b/tests/model_fields/test_booleanfield.py
+index 33ffa4e72754..8c1905e9486b 100644
+--- a/tests/model_fields/test_booleanfield.py
++++ b/tests/model_fields/test_booleanfield.py
+@@ -97,7 +97,7 @@ def test_select_related(self):
+         # part of the test.
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             mb = FksToBooleans.objects.select_related().get(pk=m1.id)
+             mc = FksToBooleans.objects.select_related().get(pk=m2.id)
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index 056f3cdc3b01..40e5df7782c8 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -258,7 +258,7 @@ def test_issue_11764(self):
+         # be removed.
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             wholesalers = list(Wholesaler.objects.select_related())
+         self.assertEqual(wholesalers, [])
+diff --git a/tests/modeladmin/tests.py b/tests/modeladmin/tests.py
+index 27d02e9c26c2..dbf8cf857dc6 100644
+--- a/tests/modeladmin/tests.py
++++ b/tests/modeladmin/tests.py
+@@ -1046,7 +1046,7 @@ class TestModelAdmin(ModelAdmin):
+     def test_list_select_related_true_deprecated_subclass(self):
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Setting ModelAdmin.list_select_related to True is deprecated\.",
++            message="Setting ModelAdmin.list_select_related to True is deprecated.",
+         ):
+ 
+             class BaseTestModelAdmin(ModelAdmin):
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index af79b96782e3..8abff323a394 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -2018,7 +2018,7 @@ def test_tickets_3045_3288(self):
+         # test case.
+         with ignore_warnings(
+             category=RemovedInDjango2028Warning,
+-            message=r"Calling select_related\(\) with no arguments is deprecated\.",
++            message="Calling select_related() with no arguments is deprecated.",
+         ):
+             self.assertSequenceEqual(X.objects.select_related(), [])
+ 
+diff --git a/tests/select_related/tests.py b/tests/select_related/tests.py
+index ec4ff5cf1934..3a4b040f64c4 100644
+--- a/tests/select_related/tests.py
++++ b/tests/select_related/tests.py
+@@ -117,7 +117,7 @@ def test_list_with_select_related(self):
+         with self.assertNumQueries(1):
+             with ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=r"Calling select_related\(\) with no arguments is deprecated\.",
++                message="Calling select_related() with no arguments is deprecated.",
+             ):
+                 world = Species.objects.select_related()
+             families = [o.genus.family.name for o in world]
+diff --git a/tests/select_related_onetoone/tests.py b/tests/select_related_onetoone/tests.py
+index 6ef414eaa2e5..296c8b6f144c 100644
+--- a/tests/select_related_onetoone/tests.py
++++ b/tests/select_related_onetoone/tests.py
+@@ -94,7 +94,7 @@ def test_not_followed_by_default(self):
+             self.assertNumQueries(2),
+             ignore_warnings(
+                 category=RemovedInDjango2028Warning,
+-                message=r"Calling select_related\(\) with no arguments is deprecated\.",
++                message="Calling select_related() with no arguments is deprecated.",
+             ),
+         ):
+             u = User.objects.select_related().get(username="test")
+diff --git a/tests/test_utils/tests.py b/tests/test_utils/tests.py
+index 3f392b308823..2db7c52048a9 100644
+--- a/tests/test_utils/tests.py
++++ b/tests/test_utils/tests.py
+@@ -1356,6 +1356,173 @@ def func1():
+             func1()
+ 
+ 
++class IgnoreWarningsTests(SimpleTestCase):
++    @contextmanager
++    def captured_warnings(self):
++        with warnings.catch_warnings(record=True) as captured:
++            warnings.simplefilter("always")
++            yield captured
++
++    def test_no_arguments(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings():
++                warnings.warn("Expected message", UserWarning)
++                warnings.warn("Another message", DeprecationWarning)
++        self.assertEqual(captured, [])
++
++    def test_message_matched_anywhere(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message="is deprecated"):
++                warnings.warn("get_connection() is deprecated.", UserWarning)
++        self.assertEqual(captured, [])
++
++    def test_message_special_re_chars(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message="[.*x+]y?"):
++                warnings.warn("A message with [.*x+]y? in it.", UserWarning)
++        self.assertEqual(captured, [])
++
++    def test_message_case_sensitive(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message="IS DEPRECATED"):
++                warnings.warn("is deprecated", UserWarning)
++        self.assertEqual(len(captured), 1)
++
++    def test_message_matched_across_newlines(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message="second line"):
++                warnings.warn("first line\nsecond line", UserWarning)
++        self.assertEqual(captured, [])
++
++    def test_message_not_matched(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message="is deprecated"):
++                warnings.warn("Expected message", UserWarning)
++        self.assertEqual(len(captured), 1)
++
++    def test_message_re(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message_re=r"get_\w+\(\) is deprecated\."):
++                warnings.warn("get_connection() is deprecated.", UserWarning)
++        self.assertEqual(captured, [])
++
++    def test_message_re_not_matched(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message_re=r"get_\w+\(\) is deprecated\."):
++                warnings.warn("Expected message", UserWarning)
++        self.assertEqual(len(captured), 1)
++
++    def test_message_and_message_re(self):
++        msg = "Cannot specify both message and message_re."
++        for message, message_re in [
++            ("Expected message", "Expected"),
++            ("Expected message", ""),
++            ("", "Expected"),
++            ("", ""),
++        ]:
++            with self.subTest(message=message, message_re=message_re):
++                with self.assertRaisesMessage(TypeError, msg):
++                    ignore_warnings(message=message, message_re=message_re)
++
++    def test_module_matched_by_prefix(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(module="test_utils"):
++                warnings.warn_explicit(
++                    "Expected message",
++                    UserWarning,
++                    "example.py",
++                    1,
++                    module="test_utils.example",
++                )
++        self.assertEqual(captured, [])
++
++    def test_module_not_matched_in_the_middle(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(module="utils.example"):
++                warnings.warn_explicit(
++                    "Expected message",
++                    UserWarning,
++                    "example.py",
++                    1,
++                    module="test_utils.example",
++                )
++        self.assertEqual(len(captured), 1)
++
++    def test_module_regex(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(module=r"test_utils\.\w+"):
++                warnings.warn_explicit(
++                    "Expected message",
++                    UserWarning,
++                    "example.py",
++                    1,
++                    module="test_utils.example",
++                )
++        self.assertEqual(captured, [])
++
++    def test_module_and_message(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(module="test_utils", message="is deprecated"):
++                warnings.warn("get_connection() is deprecated.", UserWarning)
++                warnings.warn("Expected message", UserWarning)
++                warnings.warn_explicit(
++                    "other_function() is deprecated.",
++                    UserWarning,
++                    "other.py",
++                    1,
++                    module="other.module",
++                )
++        self.assertEqual(
++            [str(warning.message) for warning in captured],
++            ["Expected message", "other_function() is deprecated."],
++        )
++
++    def test_category(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(category=UserWarning):
++                warnings.warn("Expected message", UserWarning)
++                warnings.warn("Another message", UserWarning)
++                warnings.warn("Expected message", DeprecationWarning)
++        self.assertEqual(len(captured), 1)
++        self.assertIs(captured[0].category, DeprecationWarning)
++
++    def test_category_and_message_positional(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(UserWarning, "is deprecated"):
++                warnings.warn("get_connection() is deprecated.", UserWarning)
++                warnings.warn("get_connection() is deprecated.", DeprecationWarning)
++        self.assertEqual(len(captured), 1)
++        self.assertIs(captured[0].category, DeprecationWarning)
++
++    def test_lineno(self):
++        with self.captured_warnings() as captured:
++            with ignore_warnings(lineno=10):
++                warnings.warn_explicit("Ignored message", UserWarning, "example.py", 10)
++                warnings.warn_explicit(
++                    "Expected message", UserWarning, "example.py", 11
++                )
++        self.assertEqual(
++            [str(warning.message) for warning in captured],
++            ["Expected message"],
++        )
++
++    def test_warning_filters_restored(self):
++        message = "Expected message"
++        with self.captured_warnings() as captured:
++            with ignore_warnings(message=message):
++                warnings.warn(message, UserWarning)
++            warnings.warn(message, UserWarning)
++        self.assertEqual(
++            [str(warning.message) for warning in captured],
++            [message],
++        )
++
++    def test_unsupported_argument(self):
++        msg = "unexpected keyword argument 'append'"
++        with self.assertRaisesMessage(TypeError, msg):
++            ignore_warnings(append=True)
++
++
+ class AssertFieldOutputTests(SimpleTestCase):
+     def test_assert_field_output(self):
+         error_invalid = ["Enter a valid email address."]

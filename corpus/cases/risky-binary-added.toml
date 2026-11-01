@@ -1,0 +1,14 @@
+kind = "risky"
+title = "Prebuilt helper executable committed with a small script change"
+source = "synthetic"
+expect = ["OBF007 tools/updater.exe"]
+
+[[file]]
+path = "tools/updater.exe"
+status = "added"
+binary = true
+
+[[file]]
+path = "scripts/release.sh"
+removed = ["./build.sh"]
+added = ["./build.sh", "./tools/updater.exe --silent"]

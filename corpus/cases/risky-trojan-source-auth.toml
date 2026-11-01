@@ -1,0 +1,16 @@
+kind = "risky"
+title = "Trojan Source: bidi controls make an admin check look like a comment"
+source = "recreation of CVE-2021-42574 (Boucher and Anderson, 2021)"
+expect = ["OBF001 app/permissions.py:3"]
+allow = ["PATH004 app/permissions.py"]
+
+[[file]]
+path = "app/permissions.py"
+added = [
+    'def can_export(user):',
+    '    access_level = user.level',
+    '    if access_level != "user{{RLO}} {{LRI}}# Check if admin{{PDI}} {{LRI}}":',
+    '        return True',
+    '    return False',
+]
+status = "added"

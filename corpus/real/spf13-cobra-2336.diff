@@ -1,0 +1,38 @@
+diff --git a/doc/yaml_docs.go b/doc/yaml_docs.go
+index 371971703..20950fea1 100644
+--- a/doc/yaml_docs.go
++++ b/doc/yaml_docs.go
+@@ -24,7 +24,7 @@ import (
+ 
+ 	"github.com/spf13/cobra"
+ 	"github.com/spf13/pflag"
+-	"gopkg.in/yaml.v3"
++	"go.yaml.in/yaml/v3"
+ )
+ 
+ type cmdOption struct {
+diff --git a/go.mod b/go.mod
+index 122899ded..206c6fdd3 100644
+--- a/go.mod
++++ b/go.mod
+@@ -6,5 +6,5 @@ require (
+ 	github.com/cpuguy83/go-md2man/v2 v2.0.6
+ 	github.com/inconshreveable/mousetrap v1.1.0
+ 	github.com/spf13/pflag v1.0.9
+-	gopkg.in/yaml.v3 v3.0.1
++	go.yaml.in/yaml/v3 v3.0.4
+ )
+diff --git a/go.sum b/go.sum
+index fafe83d69..ce3d22d8d 100644
+--- a/go.sum
++++ b/go.sum
+@@ -6,7 +6,7 @@ github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf
+ github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
+ github.com/spf13/pflag v1.0.9 h1:9exaQaMOCwffKiiiYk6/BndUBv+iRViNW+4lEMi0PvY=
+ github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
++go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
++go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
+ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
+ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+-gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+-gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

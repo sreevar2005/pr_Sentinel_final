@@ -1,0 +1,13 @@
+diff --git a/docs/advanced/ssl.md b/docs/advanced/ssl.md
+index f61e82ce06..3813293f78 100644
+--- a/docs/advanced/ssl.md
++++ b/docs/advanced/ssl.md
+@@ -29,7 +29,7 @@ import certifi
+ import httpx
+ import ssl
+ 
+-# This SSL context is equivelent to the default `verify=True`.
++# This SSL context is equivalent to the default `verify=True`.
+ ctx = ssl.create_default_context(cafile=certifi.where())
+ client = httpx.Client(verify=ctx)
+ ```

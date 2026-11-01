@@ -1,0 +1,102 @@
+diff --git a/docs/faq/install.txt b/docs/faq/install.txt
+index 846e18cba1c4..706211b99488 100644
+--- a/docs/faq/install.txt
++++ b/docs/faq/install.txt
+@@ -63,11 +63,27 @@ maintained by the Python project and therefore should not be used with Django.
+ You can find the latest supported micro version for each series on the `Python
+ download page <https://www.python.org/downloads/>`_.
+ 
+-We will support a Python version up to and including the first Django LTS
+-release whose security support ends after security support for that version of
+-Python ends. For example, Python 3.9 security support ends in October 2025 and
+-Django 4.2 LTS security support ends in April 2026. Therefore Django 4.2 is the
+-last version to support Python 3.9.
++Starting with Django 2028, each feature release supports three Python versions:
++the two Python versions receiving bug fixes when its alpha is released, plus
++the most recent Python version to have moved to security fixes only. During its
++year of mainstream support, a feature release also adds support, in a patch
++release, for the Python version released that October. For example, Django 2028
++supports Python 3.14, 3.15, and 3.16, and adds support for Python 3.17 in a
++patch release.
++
++The oldest Python version supported by a feature release reaches end-of-life
++about two months before that feature release does. Django continues to test
++against it until then, but may decline to fix issues that affect only that
++Python version.
++
++.. RemovedInDjango2028Warning: Remove the A.B paragraph below.
++
++Under the ``A.B`` versioning scheme, used up to and including Django 6.2, we
++will support a Python version up to and including the first Django LTS release
++whose security support ends after security support for that version of Python
++ends. For example, Python 3.9 security support ends in October 2025 and Django
++4.2 LTS security support ends in April 2026. Therefore Django 4.2 is the last
++version to support Python 3.9.
+ 
+ What Python version should I use with Django?
+ =============================================
+diff --git a/docs/howto/upgrade-version.txt b/docs/howto/upgrade-version.txt
+index 063ed2caccf6..1de71b1c44a9 100644
+--- a/docs/howto/upgrade-version.txt
++++ b/docs/howto/upgrade-version.txt
+@@ -46,7 +46,11 @@ release at once. For each feature release, use the latest patch release (e.g.
+ for 2.1, use 2.1.15).
+ 
+ The same incremental upgrade approach is recommended when upgrading from one
+-LTS to the next.
++LTS to the next, e.g. from 5.2 LTS to 6.2 LTS.
++
++Starting with Django 2028, every feature release has :ref:`long-term support
++<annual-supported-versions>`, with three years of security and data loss fixes,
++so there is no LTS release to wait for before upgrading.
+ 
+ Dependencies
+ ============
+diff --git a/docs/internals/howto-release-django.txt b/docs/internals/howto-release-django.txt
+index 366962214ac8..2f4fa56e39d0 100644
+--- a/docs/internals/howto-release-django.txt
++++ b/docs/internals/howto-release-django.txt
+@@ -22,6 +22,11 @@ There are three types of releases that you might need to make:
+ 
+ * Pre-releases: e.g. 4.2 alpha, beta, or rc.
+ 
++Starting with Django 2028, releases use :ref:`calendar versions
++<annual-official-releases>`. Where this document refers to ``A.B`` or
++``A.B.C``, read ``YYYY`` or ``YYYY.N`` instead, e.g. ``stable/2028.x`` or
++2028.1.
++
+ The short version of the steps involved is:
+ 
+ #. If this is a security release, pre-notify the security distribution list
+@@ -713,7 +718,8 @@ You're almost done! All that's left to do now is:
+    ``django/__init__.py`` again, incrementing to whatever the next expected
+    release will be. For example, after releasing 4.1.1, update ``VERSION`` to
+    ``VERSION = (4, 1, 2, 'alpha', 0)`` (:commit:`example commit
+-   <a4d19953d46247ee1992b3427fe652e941524272>`).
++   <a4d19953d46247ee1992b3427fe652e941524272>`). After releasing 2028.1,
++   update ``VERSION`` to ``VERSION = (2028, 2, 'alpha', 0)``.
+ 
+ #. If this was an alpha release:
+ 
+@@ -818,3 +824,21 @@ Some examples:
+ * ``(4, 2, 0, "alpha", 0)`` → "4.2 pre-alpha"
+ 
+ * ``(4, 2, 0, "beta", 1)`` → "4.2 beta 1"
++
++Starting with Django 2028, the ``VERSION`` tuple has four elements, as
++calendar versions have no minor version:
++
++#. Year.
++#. Patch number, 0 for the feature release.
++#. Status -- can be one of "alpha", "beta", "rc" or "final".
++#. Series number, as above.
++
++A patch number of 0 is never shown in the version. Some examples:
++
++* ``(2028, 0, "alpha", 0)`` → "2028 pre-alpha"
++
++* ``(2028, 0, "beta", 1)`` → "2028 beta 1"
++
++* ``(2028, 0, "final", 0)`` → "2028"
++
++* ``(2028, 1, "final", 0)`` → "2028.1"

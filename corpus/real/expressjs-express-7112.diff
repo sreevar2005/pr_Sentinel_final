@@ -1,0 +1,737 @@
+diff --git a/test/app.listen.js b/test/app.listen.js
+index 3ef94ff184a..734c5748592 100644
+--- a/test/app.listen.js
++++ b/test/app.listen.js
+@@ -41,6 +41,24 @@ describe('app.listen()', function(){
+     const server = app.listen();
+     server.close(done);
+   });
++
++  it('should not invoke callback more than once', function (done) {
++    var app = express()
++    var count = 0
++    var server = app.listen(0, function () {
++      count++
++    })
++
++    server.once('listening', function () {
++      server.emit('error', new Error('boom'))
++      server.close(function (err) {
++        assert.ifError(err)
++        assert.strictEqual(count, 1)
++        done()
++      })
++    })
++  })
++
+   it('server.address() gives a { address, port, family } object', function (done) {
+     const app = express();
+     const server = app.listen(0, () => {
+diff --git a/test/app.render.js b/test/app.render.js
+index bd65ce1035b..697af7a6334 100644
+--- a/test/app.render.js
++++ b/test/app.render.js
+@@ -1,6 +1,7 @@
+ 'use strict'
+ 
+ var assert = require('node:assert')
++var ejs = require('ejs');
+ var express = require('..');
+ var path = require('node:path')
+ var tmpl = require('./support/tmpl');
+@@ -32,6 +33,31 @@ describe('app', function(){
+       })
+     })
+ 
++    it('should throw without a view engine or file extension', function(){
++      var app = express();
++
++      assert.throws(function () {
++        app.render('user', function () {
++          assert.fail('render callback should not be called');
++        });
++      }, /No default engine was specified and no extension was provided\./);
++    })
++
++    it('should throw when the view engine module does not exist', function(){
++      var app = express();
++
++      app.set('view engine', 'express-test-missing-engine');
++
++      assert.throws(function () {
++        app.render('user', function () {
++          assert.fail('render callback should not be called');
++        });
++      }, {
++        code: 'MODULE_NOT_FOUND',
++        message: /^Cannot find module 'express-test-missing-engine'(?:\n|$)/
++      });
++    })
++
+     it('should expose app.locals', function(done){
+       var app = createApp();
+ 
+@@ -104,6 +130,21 @@ describe('app', function(){
+           done()
+         })
+       })
++
++      it('should pass a sync engine throw to the callback on first render', function(done){
++        var app = express();
++        var error = new Error('render failed');
++
++        app.engine('tmpl', function () {
++          throw error;
++        });
++        app.set('views', path.join(__dirname, 'fixtures'))
++
++        app.render('user.tmpl', function (err) {
++          assert.strictEqual(err, error)
++          done();
++        })
++      })
+     })
+ 
+     describe('when an extension is given', function(){
+@@ -184,6 +225,36 @@ describe('app', function(){
+           })
+         })
+ 
++        it('should continue past an empty-string root', function(done){
++          var app = createApp();
++
++          app.set('views', ['', path.join(__dirname, 'fixtures')]);
++          app.locals.user = { name: 'tobi' };
++
++          app.render('user.tmpl', function (err, str) {
++            if (err) return done(err);
++            assert.strictEqual(str, '<p>tobi</p>')
++            done();
++          })
++        })
++
++        it('should continue looking up after an ENOTDIR stat error', function(done){
++          var app = createApp();
++          var views = [
++            path.join(__dirname, 'fixtures', 'user.tmpl'),
++            path.join(__dirname, 'fixtures')
++          ];
++
++          app.set('views', views);
++          app.locals.user = { name: 'tobi' };
++
++          app.render('user.tmpl', function (err, str) {
++            if (err) return done(err);
++            assert.strictEqual(str, '<p>tobi</p>')
++            done();
++          })
++        })
++
+         it('should error if file does not exist', function(done){
+           var app = createApp();
+           var views = [
+@@ -224,9 +295,126 @@ describe('app', function(){
+           done();
+         })
+       })
++
++      it('should error when a custom view leaves path unset', function(done){
++        var app = express();
++
++        function View(name, options){
++          this.name = name;
++          this.root = options.root;
++        }
++
++        View.prototype.render = function(){
++          throw new Error('render should not be called');
++        };
++
++        app.set('view', View);
++
++        app.render('something', function(err){
++          assert.ok(err)
++          assert.match(err.message, /^Failed to lookup view "something"/)
++          done();
++        })
++      })
++
++      it('should honor a View subclass that clears path to deny a view', function(done){
++        var app = express();
++        var BaseView = app.get('view');
++
++        app.engine('tmpl', function (file, options, fn) {
++          fn(null, 'served');
++        });
++        app.set('views', path.join(__dirname, 'fixtures'))
++
++        function DenyView(name, options){
++          BaseView.call(this, name, options);
++          this.path = null;
++        }
++
++        DenyView.prototype = Object.create(BaseView.prototype);
++        DenyView.prototype.constructor = DenyView;
++
++        app.set('view', DenyView);
++
++        app.render('user.tmpl', function (err){
++          assert.ok(err, 'denied view must not be served')
++          assert.match(err.message, /^Failed to lookup view "user\.tmpl"/)
++          done();
++        })
++      })
++    })
++
++    describe('engine caching', function(){
++      it('should cache an automatically loaded engine', function(done){
++        var app = express();
++
++        app.disable('view cache');
++        app.set('views', path.join(__dirname, 'fixtures'))
++        app.locals.user = { name: 'tobi' };
++
++        assert.strictEqual(app.engines['.ejs'], undefined)
++
++        app.render('user.ejs', function (err, str) {
++          if (err) return done(err);
++          assert.strictEqual(str, '<p>tobi</p>')
++          assert.strictEqual(app.engines['.ejs'], ejs.__express)
++          done();
++        })
++      })
++
++      it('should use a replacement engine on subsequent renders', function(done){
++        var app = express();
++        var calls = 0;
++
++        // Construct a new View on each render so its cached engine is exercised.
++        app.disable('view cache');
++        app.set('views', path.join(__dirname, 'fixtures'))
++        app.locals.user = { name: 'tobi' };
++
++        app.render('user.ejs', function (err, str) {
++          if (err) return done(err);
++          assert.strictEqual(str, '<p>tobi</p>')
++
++          var engine = app.engines['.ejs'];
++          assert.strictEqual(engine, ejs.__express)
++
++          app.engine('ejs', function (file, options, callback) {
++            calls++;
++            engine(file, options, callback);
++          });
++          app.locals.user = { name: 'loki' };
++
++          app.render('user.ejs', function (err2, str2) {
++            if (err2) return done(err2);
++            assert.strictEqual(str2, '<p>loki</p>')
++            assert.strictEqual(calls, 1)
++            done();
++          })
++        })
++      })
+     })
+ 
+     describe('caching', function(){
++      it('should not cache views whose lookup failed', function(done){
++        var app = createApp();
++
++        app.enable('view cache');
++        app.set('views', path.join(__dirname, 'fixtures', 'local_layout'))
++
++        app.render('email.tmpl', function (err) {
++          assert.ok(err)
++          assert.match(err.message, /^Failed to lookup view "email\.tmpl"/)
++
++          app.set('views', path.join(__dirname, 'fixtures'))
++
++          app.render('email.tmpl', function (err2, str) {
++            if (err2) return done(err2);
++            assert.strictEqual(str, '<p>This is an email</p>')
++            done();
++          })
++        })
++      })
++
+       it('should always lookup view without cache', function(done){
+         var app = express();
+         var count = 0;
+diff --git a/test/fixtures/user.ejs b/test/fixtures/user.ejs
+new file mode 100644
+index 00000000000..b015881bb6f
+--- /dev/null
++++ b/test/fixtures/user.ejs
+@@ -0,0 +1 @@
++<p><%= user.name %></p>
+\ No newline at end of file
+diff --git a/test/req.is.js b/test/req.is.js
+index c5904dd600a..ee10e76dca3 100644
+--- a/test/req.is.js
++++ b/test/req.is.js
+@@ -1,9 +1,24 @@
+ 'use strict'
+ 
++var assert = require('node:assert')
+ var express = require('..')
+ var request = require('supertest')
++var after = require('after')
+ 
+ describe('req.is()', function () {
++  it('should return null when the request has no body, even if content-type matches', function (done) {
++    var app = express()
++
++    app.use(function (req, res) {
++      res.json(req.is('application/json'))
++    })
++
++    request(app)
++      .get('/')
++      .type('application/json')
++      .expect(200, 'null', done)
++  })
++
+   describe('when given a mime type', function () {
+     it('should return the type when matching', function (done) {
+       var app = express()
+@@ -27,10 +42,24 @@ describe('req.is()', function () {
+       })
+ 
+       request(app)
+-      .post('/')
+-      .type('application/json')
+-      .send('{}')
+-      .expect(200, 'false', done)
++        .post('/')
++        .type('application/json')
++        .send('{}')
++        .expect(200, 'false', done)
++    })
++
++    it('should return false when none in list matches', function (done) {
++      var app = express()
++
++      app.use(function (req, res) {
++        res.json(req.is(['image/jpeg', 'text/html']))
++      })
++
++      request(app)
++        .post('/')
++        .type('application/json')
++        .send('{}')
++        .expect(200, 'false', done)
+     })
+ 
+     it('should ignore charset', function (done) {
+@@ -41,26 +70,43 @@ describe('req.is()', function () {
+       })
+ 
+       request(app)
+-      .post('/')
+-      .type('application/json; charset=UTF-8')
+-      .send('{}')
+-      .expect(200, '"application/json"', done)
++        .post('/')
++        .type('application/json; charset=UTF-8')
++        .send('{}')
++        .expect(200, '"application/json"', done)
+     })
+   })
+ 
+   describe('when content-type is not present', function(){
+-    it('should return false', function (done) {
++    it('should return false for single type', function (done) {
+       var app = express()
+ 
+       app.use(function (req, res) {
++        assert.strictEqual(req.get('Content-Type'), undefined)
+         res.json(req.is('application/json'))
+       })
+ 
+       request(app)
+       .post('/')
+       .send('{}')
++      .unset('Content-Type')
+       .expect(200, 'false', done)
+     })
++
++    it('should return false for multiple types', function (done) {
++      var app = express()
++
++      app.use(function (req, res) {
++        assert.strictEqual(req.get('Content-Type'), undefined)
++        res.json(req.is(['application/json', 'image/jpeg']))
++      })
++
++      request(app)
++        .post('/')
++        .send('{}')
++        .unset('Content-Type')
++        .expect(200, 'false', done)
++    })
+   })
+ 
+   describe('when given an extension', function(){
+@@ -77,6 +123,27 @@ describe('req.is()', function () {
+       .send('{}')
+       .expect(200, '"json"', done)
+     })
++
++    it('should lookup the first matching extension from list', function (done) {
++      var app = express()
++      var cb = after(2, done)
++
++      app.use(function (req, res) {
++        res.json(req.is(['json', 'html']))
++      })
++
++      request(app)
++        .post('/')
++        .type('application/json')
++        .send('{}')
++        .expect(200, '"json"', cb)
++
++      request(app)
++        .post('/')
++        .type('text/html')
++        .send('{}')
++        .expect(200, '"html"', cb)
++    })
+   })
+ 
+   describe('when given */subtype', function(){
+@@ -166,4 +233,67 @@ describe('req.is()', function () {
+       .expect(200, '"application/json"', done)
+     })
+   })
++
++  describe('when given an array of types', function () {
++    it('should return the first match when multiple types match', function (done) {
++      var app = express()
++
++      app.use(function (req, res) {
++        res.json({
++          extensionFirst: req.is(['json', 'application/*']),
++          wildcardFirst: req.is(['application/*', 'json'])
++        })
++      })
++
++      request(app)
++        .post('/')
++        .type('application/json')
++        .send('{}')
++        .expect(200, {
++          extensionFirst: 'json',
++          wildcardFirst: 'application/json'
++        }, done)
++    })
++
++    it('should not flatten the argument', function (done) {
++      var app = express()
++
++      app.use(function (req, res) {
++        res.json(req.is(['text/*', 'application/json']))
++      })
++
++      request(app)
++      .post('/')
++      .type('application/json')
++      .send('{}')
++      .expect(200, '"application/json"', done)
++    })
++  })
++
++  it('should match wildcards in list and return full type or false', function (done){
++    var app = express()
++    var cb = after(3, done)
++
++    app.use(function (req, res) {
++      res.json(req.is(['application/*', '*/jpeg']))
++    })
++
++    request(app)
++      .post('/')
++      .type('image/jpeg')
++      .send('{}')
++      .expect(200, '"image/jpeg"', cb)
++
++    request(app)
++      .post('/')
++      .type('text/html')
++      .send('{}')
++      .expect(200, 'false', cb)
++
++    request(app)
++      .post('/')
++      .type('application/json')
++      .send('{}')
++      .expect(200, '"application/json"', cb)
++  })
+ })
+diff --git a/test/res.append.js b/test/res.append.js
+index 2dd17a3a1fb..3058ce92ee4 100644
+--- a/test/res.append.js
++++ b/test/res.append.js
+@@ -82,6 +82,22 @@ describe('res', function () {
+         .end(done)
+     })
+ 
++    it('should append an array to an existing single value', function (done) {
++      var app = express()
++
++      app.use(function (req, res) {
++        res.set('Set-Cookie', 'foo=bar')
++        res.append('Set-Cookie', ['fizz=buzz', 'pet=tobi'])
++        res.end()
++      })
++
++      request(app)
++        .get('/')
++        .expect(200)
++        .expect(shouldHaveHeaderValues('Set-Cookie', ['foo=bar', 'fizz=buzz', 'pet=tobi']))
++        .end(done)
++    })
++
+     it('should work together with res.cookie', function (done) {
+       var app = express()
+ 
+diff --git a/test/res.jsonp.js b/test/res.jsonp.js
+index e043a3b07f2..11b419dcd0f 100644
+--- a/test/res.jsonp.js
++++ b/test/res.jsonp.js
+@@ -217,6 +217,65 @@ describe('res', function(){
+       })
+     })
+ 
++    describe('when given an object with toJSON', function () {
++      it('should serialize the value returned by toJSON', function (done) {
++        var app = express()
++
++        app.use(function (req, res) {
++          res.jsonp({
++            toJSON: function () {
++              return 42
++            }
++          })
++        })
++
++        request(app)
++          .get('/?callback=cb')
++          .expect('Content-Type', 'text/javascript; charset=utf-8')
++          .expect(200, '/**/ typeof cb === \'function\' && cb(42);', done)
++      })
++
++      it('should invoke callback with no arguments when toJSON returns undefined', function (done) {
++        var app = express()
++
++        app.use(function (req, res) {
++          res.jsonp({
++            toJSON: function () {
++              return undefined
++            }
++          })
++        })
++
++        request(app)
++          .get('/?callback=cb')
++          .expect('Content-Type', 'text/javascript; charset=utf-8')
++          .expect(200, '/**/ typeof cb === \'function\' && cb();', done)
++      })
++
++      it('should forward errors thrown by toJSON before sending a response', function (done) {
++        var app = express()
++        var error = new Error('serialization failed')
++
++        app.use(function (req, res) {
++          res.jsonp({
++            toJSON: function () {
++              throw error
++            }
++          })
++        })
++
++        app.use(function (err, req, res, next) {
++          assert.strictEqual(err, error)
++          assert.strictEqual(res.headersSent, false)
++          res.status(500).send('serialization failed')
++        })
++
++        request(app)
++          .get('/?callback=cb')
++          .expect(500, 'serialization failed', done)
++      })
++    })
++
+     describe('when given an array', function () {
+       it('should invoke callback with an array', function (done) {
+         var app = express()
+diff --git a/test/res.render.js b/test/res.render.js
+index 114b398e0b4..61df9da4ad1 100644
+--- a/test/res.render.js
++++ b/test/res.render.js
+@@ -64,6 +64,30 @@ describe('res', function(){
+       .expect(500, /No default engine was specified/, done);
+     })
+ 
++    it('should forward errors for a missing view engine module', function(done){
++      var app = express();
++
++      app.set('view engine', 'express-test-missing-engine');
++
++      app.use(function (req, res) {
++        res.render('user');
++      });
++
++      app.use(function (err, req, res, next) {
++        res.status(500).json({
++          code: err.code,
++          message: err.message.split('\n')[0]
++        });
++      });
++
++      request(app)
++      .get('/')
++      .expect(500, {
++        code: 'MODULE_NOT_FOUND',
++        message: "Cannot find module 'express-test-missing-engine'"
++      }, done);
++    })
++
+     it('should expose app.locals', function(done){
+       var app = createApp();
+ 
+diff --git a/test/res.sendFile.js b/test/res.sendFile.js
+index 16eea79761e..e4d0fbb04ef 100644
+--- a/test/res.sendFile.js
++++ b/test/res.sendFile.js
+@@ -183,6 +183,112 @@ describe('res', function(){
+       .expect(200, cb);
+     })
+ 
++    it('should invoke the callback once on a socket error during transfer', function (done) {
++      var app = express()
++      var cb = after(2, done)
++      var socketError = new Error('socket failed')
++      socketError.code = 'EPIPE'
++
++      app.use(function (req, res) {
++        res.once('pipe', function () {
++          res.destroy(socketError)
++        })
++
++        res.sendFile(path.resolve(fixtures, 'name.txt'), function (err) {
++          assert.strictEqual(err, socketError)
++          cb()
++        })
++      })
++
++      var server = app.listen()
++      request(server).get('/').end(function (err) {
++        assert.ok(err)
++        server.close(cb)
++      })
++    })
++
++    ;['ECONNRESET', 'EPIPE'].forEach(function (code) {
++      it('should invoke the callback once when ' + code + ' follows a directory error', function (done) {
++        var app = express()
++        var cb = after(2, done)
++        var socketError = new Error('socket failed')
++        socketError.code = code
++
++        app.use(function (req, res) {
++          res.sendFile(path.resolve(fixtures, 'blog'), function (err) {
++            assert.ok(err)
++            assert.strictEqual(err.code, 'EISDIR')
++            res.destroy(socketError)
++            cb()
++          })
++        })
++
++        var server = app.listen()
++        request(server).get('/').end(function (err) {
++          assert.ok(err)
++          server.close(cb)
++        })
++      })
++    })
++
++    it('should invoke the callback once when a socket error precedes the stream end', function (done) {
++      var app = express()
++      var cb = after(2, done)
++      var socketError = new Error('socket failed')
++      socketError.code = 'EPIPE'
++
++      app.use(function (req, res) {
++        var socket = res.socket
++        res.once('pipe', function (stream) {
++          // Report the error before send handles the stream end event.
++          stream.prependOnceListener('end', function () {
++            socket.emit('error', socketError)
++          })
++        })
++
++        res.sendFile(path.resolve(fixtures, 'name.txt'), function (err) {
++          assert.strictEqual(err, socketError)
++          cb()
++        })
++      })
++
++      var server = app.listen()
++      request(server).get('/').end(function () {
++        // The client may receive the complete body before the socket error.
++        server.close(cb)
++      })
++    })
++
++    it('should invoke the callback once when a stream error follows response finish', function (done) {
++      var app = express()
++      var cb = after(2, done)
++      var streamError = new Error('read failed')
++      streamError.code = 'EIO'
++
++      app.use(function (req, res) {
++        res.once('pipe', function (stream) {
++          res.once('finish', function () {
++            // Report the error before the deferred completion callback runs.
++            stream.emit('error', streamError)
++          })
++          stream.once('open', function () {
++            res.end()
++          })
++        })
++
++        res.sendFile(path.resolve(fixtures, 'name.txt'), function (err) {
++          assert.strictEqual(err, streamError)
++          cb()
++        })
++      })
++
++      var server = app.listen()
++      request(server).get('/').end(function (err) {
++        assert.ok(err)
++        server.close(cb)
++      })
++    })
++
+     it('should invoke the callback when client aborts', function (done) {
+       var cb = after(2, done)
+       var app = express();
+diff --git a/test/view.js b/test/view.js
+new file mode 100644
+index 00000000000..f7911679608
+--- /dev/null
++++ b/test/view.js
+@@ -0,0 +1,12 @@
++'use strict'
++
++var assert = require('node:assert')
++var View = require('../lib/view')
++
++describe('View', function () {
++  it('should handle missing options object', function () {
++    assert.throws(function () {
++      new View('name')
++    }, /No default engine was specified and no extension was provided\./)
++  })
++})

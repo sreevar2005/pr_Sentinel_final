@@ -1,8 +1,8 @@
 """Command line interface.
 
-Exit codes: 0 scan finished (whether or not anything was found; findings are advisory and never
-fail a build), 1 scan finished but a detector crashed so results are incomplete, 2 bad input or
-usage.
+Exit codes for ``scan``: 0 scan finished (whether or not anything was found; findings are advisory
+and never fail a build), 1 scan finished but a detector crashed so results are incomplete, 2 bad
+input or usage. ``eval`` returns 1 when a labeled case no longer behaves as labeled.
 """
 
 from __future__ import annotations
@@ -67,7 +67,34 @@ def _parser() -> argparse.ArgumentParser:
         "--markdown", action="store_true", help="print the full rule reference as Markdown (docs/rules.md)"
     )
     explain.set_defaults(handler=_explain)
+
+    eval_cmd = commands.add_parser(
+        "eval", help="measure the rules on a labeled corpus; exits 1 if a case no longer behaves as labeled"
+    )
+    eval_cmd.add_argument(
+        "--corpus", metavar="DIR", default="corpus", help="corpus directory (default: corpus)"
+    )
+    eval_cmd.add_argument(
+        "--format", choices=("text", "markdown", "json"), default="text", help="report format"
+    )
+    eval_cmd.set_defaults(handler=_eval)
     return parser
+
+
+def _eval(args: argparse.Namespace) -> int:
+    from prscreen import evaluation
+
+    try:
+        report = evaluation.evaluate(Path(args.corpus))
+    except (evaluation.CorpusError, OSError) as exc:
+        raise UsageError(str(exc)) from exc
+    renderers = {
+        "text": evaluation.render_text,
+        "markdown": evaluation.render_markdown,
+        "json": evaluation.render_json,
+    }
+    sys.stdout.write(renderers[args.format](report))
+    return EXIT_OK if report.passed else EXIT_INCOMPLETE
 
 
 def _scan(args: argparse.Namespace) -> int:

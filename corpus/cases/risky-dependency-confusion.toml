@@ -1,0 +1,10 @@
+kind = "risky"
+title = "Extra package index added next to an internal package name"
+source = "recreation of dependency confusion (Birsan, 2021)"
+expect = ["DEP003 requirements.txt:1"]
+allow = ["DEP001 requirements.txt:3"]
+
+[[file]]
+path = "requirements.txt"
+removed = ["django==5.1"]
+added = ["--extra-index-url https://pypi.internal-build.co/simple", "django==5.1", "acme-billing-core==1.4.0"]

@@ -1,0 +1,81 @@
+diff --git a/AUTHORS b/AUTHORS
+index 9e4327c7733..136ffd6c5ee 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -187,6 +187,7 @@ Floris Bruynooghe
+ Frank Hoffmann
+ Fraser Stark
+ Freya Bruhin
++Gabriel Gerlero
+ Gabriel Landau
+ Gabriel Reis
+ Gang Eun Lee
+diff --git a/changelog/15284.bugfix.rst b/changelog/15284.bugfix.rst
+new file mode 100644
+index 00000000000..51e82840544
+--- /dev/null
++++ b/changelog/15284.bugfix.rst
+@@ -0,0 +1 @@
++Fixed a regression in :func:`pytest.approx` with JAX arrays when an inexact float tolerance is supplied.
+diff --git a/src/_pytest/approx.py b/src/_pytest/approx.py
+index 70a881e3326..10c88d42334 100644
+--- a/src/_pytest/approx.py
++++ b/src/_pytest/approx.py
+@@ -1033,7 +1033,10 @@ def _contains_decimal(expected: object) -> bool:
+     if _is_sequence_like(expected):
+         # ``.flat`` also makes a 0-d numpy array iterable, which it is not
+         # otherwise, despite being sized and subscriptable.
+-        values = getattr(expected, "flat", expected)
++        try:
++            values = getattr(expected, "flat", expected)
++        except NotImplementedError:  # ``.flat`` raises like this on a jax.Array
++            return False  # But JAX arrays cannot contain `Decimal` anyway
+         return any(isinstance(value, Decimal) for value in values)
+     return False
+ 
+diff --git a/testing/python/approx.py b/testing/python/approx.py
+index e0bfc37f85d..35adcfea140 100644
+--- a/testing/python/approx.py
++++ b/testing/python/approx.py
+@@ -898,6 +898,41 @@ def __array__(self, dtype=None, copy=None):
+         # see issue #12114 for test case
+         assert vec1 != approx(vec2)
+ 
++    @pytest.mark.parametrize("values", (42, [42, 43], [[42, 43], [44, 45]]))
++    def test_custom_array_unimplemented_flat(self, values) -> None:
++        """Test handling of an array which raises NotImplementedError from
++        `flat`, as is done by JAX (#15284)."""
++        np = pytest.importorskip("numpy")
++
++        class CustomArray:
++            def __init__(self, values, /):
++                self.values = values
++                self.array_conversions = 0
++
++            def __array__(self, dtype=None, copy=None):
++                self.array_conversions += 1
++                return np.array(self.values, dtype=dtype, copy=copy)
++
++            def __getitem__(self, _):
++                raise AssertionError("Should not be called")  # pragma: no cover
++
++            def __len__(self):
++                raise AssertionError("Should not be called")  # pragma: no cover
++
++            @property
++            def flat(self):
++                raise NotImplementedError("this class does not provide .flat")
++
++        actual = np.array(values)
++        expected = CustomArray(values)
++
++        assert actual == approx(expected, rel=1e-3)
++        assert expected.array_conversions == 1
++        assert actual + 1e-4 == approx(expected, rel=1e-3)
++        assert expected.array_conversions == 2
++        assert actual + 1 != approx(expected, rel=1e-3)
++        assert expected.array_conversions == 3
++
+     def test_numpy_array_protocol(self):
+         """
+         array-like objects such as tensorflow's DeviceArray are handled like ndarray.

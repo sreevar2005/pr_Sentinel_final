@@ -57,6 +57,7 @@ def scan(diff: Diff, detectors: Sequence[Detector] | None = None) -> ScanResult:
         except Exception as exc:  # noqa: BLE001 - one broken detector must not hide the others' findings
             errors.append(f"detector {detector.name!r} failed: {type(exc).__name__}: {exc}")
 
+    findings = _drop_superseded(findings)
     findings.sort(key=lambda f: (-f.severity, -f.confidence, f.path, f.line or 0, f.rule.id))
     return ScanResult(
         findings=findings,
@@ -66,3 +67,9 @@ def scan(diff: Diff, detectors: Sequence[Detector] | None = None) -> ScanResult:
         capped=dict(capped),
         errors=errors,
     )
+
+
+def _drop_superseded(findings: list[Finding]) -> list[Finding]:
+    """Drop findings that a more specific rule already reports on the same line."""
+    covered = {(f.path, f.line, sup) for f in findings if f.line is not None for sup in f.rule.supersedes}
+    return [f for f in findings if (f.path, f.line, f.rule.id) not in covered]

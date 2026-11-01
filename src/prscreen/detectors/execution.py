@@ -13,7 +13,9 @@ from prscreen.detectors._common import (
     is_comment,
     is_doc,
     is_runnable,
+    is_source,
     is_vendored,
+    suffix,
 )
 from prscreen.diff import ChangeKind, Diff, DiffLine, FileChange
 from prscreen.models import Category, Confidence, Finding, Rule, Severity
@@ -33,6 +35,7 @@ PIPE_TO_SHELL = Rule(
         "Official installers (rustup, Homebrew, nvm) are distributed this way. Prefer a pinned "
         "version and a checksum, especially in CI."
     ),
+    supersedes=("NET003",),
 )
 DYNAMIC_EVAL = Rule(
     id="EXE002",
@@ -113,6 +116,14 @@ _PIPE_TO_SHELL_RE = re.compile(
 )
 
 
+def _python(path: str) -> bool:
+    return is_source(path) and suffix(path) in (".py", ".pyw", ".pth")
+
+
+def _javascript(path: str) -> bool:
+    return is_source(path) and suffix(path) in (".js", ".mjs", ".cjs", ".jsx", ".ts", ".mts", ".cts", ".tsx")
+
+
 def _not_doc(path: str) -> bool:
     return is_runnable(path) or (not is_doc(path) and "." not in basename(path))
 
@@ -124,10 +135,14 @@ class ExecutionDetector(PatternDetector):
                 where=_not_doc),
         Pattern(PIPE_TO_SHELL, _PIPE_TO_SHELL_RE, "Documentation tells readers to run a remote script.",
                 where=is_doc, skip_comments=False, severity=Severity.LOW, confidence=Confidence.MEDIUM),
-        Pattern(DYNAMIC_EVAL, re.compile(r"(?<![\w.$])(?:eval|exec)\s*\((?!\s*\))"),
-                "Evaluates a string as code."),
+        # exec() is Python's eval for statements; in JavaScript a bare exec() is child_process.
+        Pattern(DYNAMIC_EVAL, re.compile(r"(?<![\w.$])eval\s*\((?!\s*\))"), "Evaluates a string as code."),
+        Pattern(DYNAMIC_EVAL, re.compile(r"(?<![\w.$])exec\s*\((?!\s*\))"), "Executes a string as code.",
+                where=_python),
         Pattern(DYNAMIC_EVAL, re.compile(r"\bnew\s+Function\s*\(|\bset(?:Timeout|Interval)\s*\(\s*[\"'`]"),
                 "Builds a function from a string."),
+        Pattern(SHELL_COMMAND, re.compile(r"(?<![\w.$])exec(?:Sync)?\s*\(\s*[`'\"]"),
+                "Runs a command string through a shell (child_process.exec).", where=_javascript),
         Pattern(SHELL_COMMAND, re.compile(
             r"\bsubprocess\.\w+\s*\(.*\bshell\s*=\s*True"
             r"|\bos\.(?:system|popen)\s*\("
@@ -195,7 +210,8 @@ class InstallHookDetector(LineDetector):
         elif name == "composer.json" and _COMPOSER_HOOK_RE.search(text):
             yield INSTALL_HOOK.finding(change.path, line.number, text, "Composer runs this on install.")
         elif name == "setup.py" and not is_comment(text):
-            if _SETUP_NETWORK_RE.search(text):
+            importing = text.lstrip().startswith(("import ", "from "))  # importing alone does nothing
+            if _SETUP_NETWORK_RE.search(text) and not importing:
                 yield INSTALL_HOOK.finding(
                     change.path, line.number, text,
                     "setup.py runs during install; this line makes network calls or runs commands.",

@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Thumbnail helper builds a shell command from the uploaded file name"
+source = "synthetic"
+expect = ["EXE003 media/thumbs.py:2"]
+
+[[file]]
+path = "media/thumbs.py"
+removed = ['    subprocess.run(["convert", path, "-resize", "200x200", out], check=True)']
+added = ["    cmd = f'convert {upload.filename} -resize 200x200 {out}'", "    subprocess.run(cmd, shell=True, check=True)"]

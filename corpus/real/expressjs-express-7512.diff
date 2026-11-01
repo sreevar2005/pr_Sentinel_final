@@ -1,0 +1,38 @@
+diff --git a/lib/request.js b/lib/request.js
+index 1eb7f9ca16a..c0506334ce2 100644
+--- a/lib/request.js
++++ b/lib/request.js
+@@ -330,7 +330,7 @@ defineGetter(req, 'secure', function secure(){
+ /**
+  * Return the remote address from the trusted proxy.
+  *
+- * The is the remote address on the socket unless
++ * This is the remote address on the socket unless
+  * "trust proxy" is set.
+  *
+  * @return {String}
+diff --git a/lib/response.js b/lib/response.js
+index 2ac0d8f34d6..0d5a4ae4d4d 100644
+--- a/lib/response.js
++++ b/lib/response.js
+@@ -449,7 +449,7 @@ res.download = function download (path, filename, options, callback) {
+     opts = null
+   }
+ 
+-  // support optional filename, where options may be in it's place
++  // support optional filename, where options may be in its place
+   if (typeof filename === 'object' &&
+     (typeof options === 'function' || options === undefined)) {
+     name = null
+@@ -517,8 +517,9 @@ res.type = function contentType(type) {
+  * Respond to the Acceptable formats using an `obj`
+  * of mime-type callbacks.
+  *
+- * This method uses `req.accepted`, an array of
+- * acceptable types ordered by their quality values.
++ * This method uses `req.accepts()`, which returns the
++ * best match from the acceptable types ordered by
++ * their quality values.
+  * When "Accept" is not present the _first_ callback
+  * is invoked, otherwise the first match is used. When
+  * no match is performed the server responds with

@@ -1,3 +1,4 @@
 * text=auto eol=lf
 # Test fixtures must reach the parser byte-for-byte (CRLF, odd Unicode), so git must not touch them.
 tests/fixtures/** -text
+corpus/real/*.diff -text

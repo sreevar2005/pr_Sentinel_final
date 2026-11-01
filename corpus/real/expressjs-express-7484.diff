@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 23505c618e4..75f5a4ec387 100644
+--- a/package.json
++++ b/package.json
+@@ -52,7 +52,7 @@
+     "on-finished": "~2.4.1",
+     "parseurl": "~1.3.3",
+     "path-to-regexp": "~0.1.13",
+-    "proxy-addr": "~2.0.7",
++    "proxy-addr": "~2.0.8",
+     "qs": "~6.16.0",
+     "range-parser": "~1.2.1",
+     "safe-buffer": "5.2.1",

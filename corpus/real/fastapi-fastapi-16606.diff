@@ -1,0 +1,25 @@
+diff --git a/docs/en/docs/release-notes.md b/docs/en/docs/release-notes.md
+index 5c72bbeee05c9..14621f8767ba3 100644
+--- a/docs/en/docs/release-notes.md
++++ b/docs/en/docs/release-notes.md
+@@ -7,6 +7,8 @@ hide:
+ 
+ ## Latest Changes
+ 
++## 0.162.0 (2026-10-23)
++
+ Omitted `bool` and `bool | None` form fields now use their declared defaults or produce missing-field errors, consistent with other fields and Pydantic behavior. FastAPI no longer infers `False` for omitted booleans. This applies to individual form parameters, form models, and unions of form models.
+ 
+ Omitted boolean model fields are excluded from `model_dump(exclude_unset=True)`, and their defaults no longer count as submitted fields during union selection. Default factories and `validate_default` follow the usual rules.
+diff --git a/fastapi/__init__.py b/fastapi/__init__.py
+index 07446a7e0d90d..0796611f0de72 100644
+--- a/fastapi/__init__.py
++++ b/fastapi/__init__.py
+@@ -1,6 +1,6 @@
+ """FastAPI framework, high performance, easy to learn, fast to code, ready for production"""
+ 
+-__version__ = "0.161.1"
++__version__ = "0.162.0"
+ 
+ from starlette import status as status
+ 

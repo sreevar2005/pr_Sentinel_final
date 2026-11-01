@@ -1,0 +1,176 @@
+diff --git a/fastapi/dependencies/utils.py b/fastapi/dependencies/utils.py
+index b24b3e887ec78..24f4be23cd5ec 100644
+--- a/fastapi/dependencies/utils.py
++++ b/fastapi/dependencies/utils.py
+@@ -1366,8 +1366,7 @@ def _get_body_field(
+         return None
+     first_param = body_params[0]
+     has_nullable_form_model = any(
+-        (model := _get_form_model(field)) is not None
+-        and field.field_info.annotation is not model
++        _get_form_models(field) and type(None) in get_args(field.field_info.annotation)
+         for field in body_params
+     )
+     if not embed_body_fields and not has_nullable_form_model:
+@@ -1402,6 +1401,9 @@ def _get_body_field(
+     if not embed_body_fields:
+         field_info = copy(first_param.field_info)
+         field_info.annotation = BodyModel
++        # The original form field already carries the validation metadata.
++        field_info.metadata = []
++        field_info.discriminator = None
+         return ModelField(name=first_param.name, field_info=field_info)
+     required = any(True for f in body_params if f.field_info.is_required())
+     BodyFieldInfo_kwargs: dict[str, Any] = {
+diff --git a/tests/test_forms_optional_unions.py b/tests/test_forms_optional_unions.py
+index b8804eb4de5a4..c4b064579d18b 100644
+--- a/tests/test_forms_optional_unions.py
++++ b/tests/test_forms_optional_unions.py
+@@ -125,15 +125,27 @@ def read(data: Annotated[Count | Label | None, Form()]):
+         return data
+ 
+     client = TestClient(app)
+-    response = client.post("/")
+-    assert response.status_code == 422
+-    assert response.json()["detail"] == [
+-        {"type": "missing", "loc": ["body"], "msg": "Field required", "input": None}
+-    ]
++    for fields in ({}, {"unknown": "ignored"}):
++        response = client.post("/", data=fields)
++        assert response.status_code == 422
++        assert response.json()["detail"] == [
++            {"type": "missing", "loc": ["body"], "msg": "Field required", "input": None}
++        ]
+     response = client.post("/", data={"count": "2"})
+     assert response.status_code == 200, response.text
+     assert response.json() == {"count": 2}
+-    assert app.openapi()["paths"]["/"]["post"]["requestBody"]["required"] is True
++    schema = app.openapi()
++    assert schema["paths"]["/"]["post"]["requestBody"]["required"] is True
++    assert schema["components"]["schemas"]["Body_read__post"]["allOf"] == [
++        {"not": {"not": {"anyOf": [{"required": ["count"]}, {"required": ["label"]}]}}},
++        {
++            "anyOf": [
++                {"$ref": "#/components/schemas/Count"},
++                {"$ref": "#/components/schemas/Label"},
++            ],
++            "title": "Data",
++        },
++    ]
+ 
+ 
+ @pytest.mark.parametrize("extra", ["ignore", "allow", "forbid"])
+@@ -173,6 +185,27 @@ def read(
+         assert response.json() == (
+             {"count": 1, "unknown": ["a", "b"]} if extra == "allow" else None
+         )
++    schema = app.openapi()
++    assert "required" not in schema["paths"]["/"]["post"]["requestBody"]
++    absent = (
++        {"maxProperties": 0}
++        if extra in ("allow", "forbid")
++        else {"not": {"anyOf": [{"required": ["count"]}, {"required": ["label"]}]}}
++    )
++    assert schema["components"]["schemas"]["Body_read__post"]["allOf"] == [
++        {
++            "anyOf": [
++                absent,
++                {
++                    "anyOf": [
++                        {"$ref": "#/components/schemas/Count"},
++                        {"$ref": "#/components/schemas/Label"},
++                    ],
++                    "title": "Data",
++                },
++            ]
++        }
++    ]
+ 
+ 
+ def test_mixed_extra_configurations_activate_union():
+@@ -345,6 +378,10 @@ def read_validated_default(
+     response = client.post("/validated-default")
+     assert response.status_code == 200, response.text
+     assert calls == ["validated"]
++    schema = app.openapi()
++    for path in ("/default", "/factory", "/validated-default"):
++        assert "required" not in schema["paths"][path]["post"]["requestBody"]
++    assert calls == ["validated"]
+ 
+ 
+ def test_optional_union_in_dependency():
+@@ -370,24 +407,51 @@ def read(data: Annotated[TextForm | ListForm | None, Depends(get_form)]):
+ 
+ def test_openapi():
+     schema = app.openapi()
++    schemas = schema["components"]["schemas"]
++    absent = {
++        "not": {
++            "anyOf": [
++                {"required": ["enabled"]},
++                {"required": ["kind"]},
++                {"required": ["value"]},
++            ]
++        }
++    }
+     assert schema["paths"]["/union"]["post"]["requestBody"] == {
+         "content": {
+             "application/x-www-form-urlencoded": {
+-                "schema": {
++                "schema": {"$ref": "#/components/schemas/Body_read_union_union_post"}
++            }
++        }
++    }
++    assert schemas["Body_read_union_union_post"]["allOf"] == [
++        {
++            "anyOf": [
++                absent,
++                {
+                     "anyOf": [
+                         {"$ref": "#/components/schemas/TextForm"},
+                         {"$ref": "#/components/schemas/ListForm"},
+-                        {"type": "null"},
+                     ],
+                     "title": "Data",
+-                }
+-            }
++                },
++            ]
+         }
+-    }
++    ]
+     assert schema["paths"]["/discriminated"]["post"]["requestBody"] == {
+         "content": {
+             "application/x-www-form-urlencoded": {
+                 "schema": {
++                    "$ref": "#/components/schemas/Body_read_discriminated_discriminated_post"
++                }
++            }
++        }
++    }
++    assert schemas["Body_read_discriminated_discriminated_post"]["allOf"] == [
++        {
++            "anyOf": [
++                absent,
++                {
+                     "anyOf": [
+                         {
+                             "oneOf": [
+@@ -402,12 +466,11 @@ def test_openapi():
+                                 },
+                             },
+                         },
+-                        {"type": "null"},
+                     ],
+                     "title": "Data",
+-                }
+-            }
++                },
++            ]
+         }
+-    }
+-    assert schema["components"]["schemas"]["TextForm"]["required"] == ["kind", "value"]
+-    assert schema["components"]["schemas"]["ListForm"]["required"] == ["kind", "value"]
++    ]
++    assert schemas["TextForm"] == TextForm.model_json_schema()
++    assert schemas["ListForm"] == ListForm.model_json_schema()

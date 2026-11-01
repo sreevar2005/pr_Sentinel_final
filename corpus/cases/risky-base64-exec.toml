@@ -1,0 +1,13 @@
+kind = "risky"
+title = "Base64 payload decoded and executed at import time"
+source = "synthetic; the most common obfuscation in malicious PyPI uploads"
+expect = ["OBF004 src/pkg/__init__.py:2", "OBF005 src/pkg/__init__.py:3"]
+
+[[file]]
+path = "src/pkg/__init__.py"
+removed = ["import base64"]
+added = [
+    "import base64",
+    "_cfg = 'cHJpbnQoInByc2NyZWVuIGNvcnB1czogc3RhbmQtaW4gZm9yIGEgaGlkZGVuIHBheWxvYWQuIEEgcmVhbCBvbmUgd291bGQgb3BlbiBhIHJldmVyc2Ugc2hlbGwgb3Igc3RlYWwgdG9rZW5zIGhlcmUuIik7IHByaW50KCJub3RoaW5nIGVsc2UgaGFwcGVucyIpICAjIHBhZGRpbmcgcGFkZGluZyBwYWRkaW5n'",
+    "exec(base64.b64decode(_cfg))",
+]

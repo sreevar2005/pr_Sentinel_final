@@ -59,6 +59,8 @@ class Rule:
     """Why the pattern may be risky."""
     benign: str
     """Common harmless reasons for the same pattern, so a finding never reads as an accusation."""
+    supersedes: tuple[str, ...] = ()
+    """Rule IDs that add nothing when this rule fires on the same line (shown once, not twice)."""
 
     def finding(
         self,

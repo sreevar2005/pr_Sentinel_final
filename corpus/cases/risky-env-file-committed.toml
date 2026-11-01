@@ -1,0 +1,14 @@
+kind = "risky"
+title = ".env with a live Stripe key committed alongside a feature"
+source = "synthetic"
+expect = ["SEC005 .env", "SEC002 .env:2"]
+
+[[file]]
+path = ".env"
+status = "added"
+added = ["DATABASE_URL=postgres://localhost/app", "STRIPE_SECRET_KEY={{STRIPE_KEY}}", "DEBUG=1"]
+
+[[file]]
+path = "app/billing.py"
+status = "added"
+added = ["import os", "import stripe", "", 'stripe.api_key = os.environ["STRIPE_SECRET_KEY"]']

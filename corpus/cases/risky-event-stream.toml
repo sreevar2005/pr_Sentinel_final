@@ -1,0 +1,29 @@
+kind = "risky"
+title = "New dependency whose code decrypts a hex payload and runs it"
+source = "recreation of the event-stream / flatmap-stream incident (npm, 2018)"
+expect = [
+    "DEP001 package.json:3",
+    "OBF004 lib/flatmap.js:4",
+    "OBF005 lib/flatmap.js:5",
+]
+allow = ["DEP001 package.json:2"]
+
+[[file]]
+path = "package.json"
+removed = ['    "duplexer": "~0.1.1",']
+added = [
+    '    "duplexer": "~0.1.1",',
+    '    "from": "~0",',
+    '    "flatmap-stream": "0.1.1",',
+]
+
+[[file]]
+path = "lib/flatmap.js"
+status = "added"
+added = [
+    "'use strict';",
+    "var Stream = require('stream').Stream;",
+    "module.exports = function (mapper) { return new Stream(); };",
+    "var n = '2f2f207374616e642d696e20666f722074686520656e6372797074656420666c61746d61702d73747265616d207061796c6f61643a206861726d6c65737320746578742c206465636f64656420616e642072756e207468652073616d65207761792e20546865207265616c206f6e6520646563727970746564207769746820746865207061636b616765206465736372697074696f6e20617320746865206b657920616e64207461726765746564206120626974636f696e2077616c6c6574206170702e';",
+    "!function () { try { new Function(Buffer.from(n, 'hex').toString())(); } catch (e) {} }();",
+]

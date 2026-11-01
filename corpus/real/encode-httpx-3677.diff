@@ -1,0 +1,26 @@
+diff --git a/.github/workflows/publish.yml b/.github/workflows/publish.yml
+index fb2304a81a..a16f258740 100644
+--- a/.github/workflows/publish.yml
++++ b/.github/workflows/publish.yml
+@@ -15,7 +15,7 @@ jobs:
+ 
+     steps:
+       - uses: "actions/checkout@v4"
+-      - uses: "actions/setup-python@v5"
++      - uses: "actions/setup-python@v6"
+         with:
+           python-version: 3.9
+       - name: "Install dependencies"
+diff --git a/.github/workflows/test-suite.yml b/.github/workflows/test-suite.yml
+index 9ea74686b8..92e8c36015 100644
+--- a/.github/workflows/test-suite.yml
++++ b/.github/workflows/test-suite.yml
+@@ -18,7 +18,7 @@ jobs:
+ 
+     steps:
+       - uses: "actions/checkout@v4"
+-      - uses: "actions/setup-python@v5"
++      - uses: "actions/setup-python@v6"
+         with:
+           python-version: "${{ matrix.python-version }}"
+           allow-prereleases: true

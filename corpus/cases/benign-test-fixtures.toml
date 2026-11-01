@@ -1,0 +1,16 @@
+kind = "benign"
+title = "Security tests that deliberately contain risky-looking code"
+source = "synthetic; checks that test files are downgraded, not silenced"
+allow = [
+    "EXE002 tests/test_sandbox.py:1",
+    "EXE004 tests/test_sandbox.py:2",
+    "CFG001 tests/test_sandbox.py:3",
+]
+
+[[file]]
+path = "tests/test_sandbox.py"
+added = [
+    "    assert sandbox.run(lambda: eval('1+1')) == 2",
+    "    assert loads_blocked(lambda: pickle.loads(EVIL))",
+    "    requests.get(local_server.url, verify=False)",
+]

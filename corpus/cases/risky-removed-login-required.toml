@@ -1,0 +1,17 @@
+kind = "risky"
+title = "Refactor quietly drops the login and permission checks from an export view"
+source = "synthetic"
+expect = ["CFG005 reports/views.py"]
+
+[[file]]
+path = "reports/views.py"
+removed = [
+    "@login_required",
+    "@permission_required('reports.export')",
+    "def export_users(request, org_id):",
+    "    org = get_object_or_404(Org, pk=org_id)",
+]
+added = [
+    "def export_users(request, org_id):",
+    "    org = get_object_or_404(Org, pk=org_id)",
+]

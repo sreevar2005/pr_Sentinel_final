@@ -1,0 +1,12 @@
+kind = "benign"
+title = "Safe YAML loaders and JSON decoding"
+source = "synthetic look-alike of EXE004"
+
+[[file]]
+path = "app/config.py"
+added = [
+    "cfg = yaml.safe_load(stream)",
+    "docs = list(yaml.load_all(stream, Loader=yaml.SafeLoader))",
+    "data = json.loads(body)",
+    "state = torch.load(path, weights_only=True)",
+]

@@ -1,0 +1,9 @@
+kind = "risky"
+title = "Production settings switch on DEBUG and accept any Host header"
+source = "synthetic"
+expect = ["CFG003 config/settings/prod.py:1", "CFG003 config/settings/prod.py:2"]
+
+[[file]]
+path = "config/settings/prod.py"
+removed = ["DEBUG = False", 'ALLOWED_HOSTS = ["app.acme.co"]']
+added = ["DEBUG = True", 'ALLOWED_HOSTS = ["*"]']

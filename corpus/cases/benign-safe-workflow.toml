@@ -1,0 +1,27 @@
+kind = "benign"
+title = "Workflow passes the issue title through env and pins its actions"
+source = "synthetic look-alike of CI003 and CI005"
+allow = ["PATH001 .github/workflows/greet.yml"]
+
+[[file]]
+path = ".github/workflows/greet.yml"
+status = "added"
+added = [
+    "name: Greet",
+    "on:",
+    "  issues:",
+    "    types: [opened]",
+    "permissions:",
+    "  contents: read",
+    "jobs:",
+    "  greet:",
+    "    if: github.event.issue.title != ''",
+    "    runs-on: ubuntu-latest",
+    "    steps:",
+    "      - uses: actions/checkout@v4",
+    "      - uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc",
+    "      - run: echo \"Issue #${{ github.event.issue.number }}: $TITLE\"",
+    "        env:",
+    "          TITLE: ${{ github.event.issue.title }}",
+    "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+]

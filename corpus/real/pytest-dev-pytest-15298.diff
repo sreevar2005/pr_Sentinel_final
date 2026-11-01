@@ -1,0 +1,315 @@
+diff --git a/changelog/15201.bugfix.rst b/changelog/15201.bugfix.rst
+new file mode 100644
+index 00000000000..758a3522149
+--- /dev/null
++++ b/changelog/15201.bugfix.rst
+@@ -0,0 +1 @@
++Subtest timing (start, stop and duration) no longer breaks when the test under ``subtests.test()`` mocks :func:`time.time` or :func:`time.perf_counter`; it now uses pytest's internal timing like regular test phases do.
+diff --git a/src/_pytest/runner.py b/src/_pytest/runner.py
+index 27c5739845a..629796598df 100644
+--- a/src/_pytest/runner.py
++++ b/src/_pytest/runner.py
+@@ -296,12 +296,8 @@ class CallInfo(Generic[TResult]):
+     _result: TResult | None
+     #: The captured exception of the call, if it raised.
+     excinfo: ExceptionInfo[BaseException] | None
+-    #: The system time when the call started, in seconds since the epoch.
+-    start: float
+-    #: The system time when the call ended, in seconds since the epoch.
+-    stop: float
+-    #: The call duration, in seconds.
+-    duration: float
++    # The timing of the call; ``start``, ``stop`` and ``duration`` are views on it.
++    _duration: timing.Duration
+     #: The context of invocation: "collect", "setup", "call" or "teardown".
+     when: Literal["collect", "setup", "call", "teardown"]
+ 
+@@ -309,9 +305,7 @@ def __init__(
+         self,
+         result: TResult | None,
+         excinfo: ExceptionInfo[BaseException] | None,
+-        start: float,
+-        stop: float,
+-        duration: float,
++        duration: timing.Duration,
+         when: Literal["collect", "setup", "call", "teardown"],
+         *,
+         _ispytest: bool = False,
+@@ -319,11 +313,41 @@ def __init__(
+         check_ispytest(_ispytest)
+         self._result = result
+         self.excinfo = excinfo
+-        self.start = start
+-        self.stop = stop
+-        self.duration = duration
++        self._duration = duration
+         self.when = when
+ 
++    @property
++    def start(self) -> float:
++        """The system time when the call started, in seconds since the epoch."""
++        return self._duration.start.time
++
++    @start.setter
++    def start(self, value: float) -> None:
++        start = dataclasses.replace(self._duration.start, time=value)
++        self._duration = dataclasses.replace(self._duration, start=start)
++
++    @property
++    def stop(self) -> float:
++        """The system time when the call ended, in seconds since the epoch."""
++        return self._duration.stop.time
++
++    @stop.setter
++    def stop(self, value: float) -> None:
++        stop = dataclasses.replace(self._duration.stop, time=value)
++        self._duration = dataclasses.replace(self._duration, stop=stop)
++
++    @property
++    def duration(self) -> float:
++        """The call duration, in seconds."""
++        return self._duration.seconds
++
++    @duration.setter
++    def duration(self, value: float) -> None:
++        stop = dataclasses.replace(
++            self._duration.stop, perf_count=self._duration.start.perf_count + value
++        )
++        self._duration = dataclasses.replace(self._duration, stop=stop)
++
+     @property
+     def result(self) -> TResult:
+         """The return value of the call, if it didn't raise.
+@@ -364,14 +388,11 @@ def from_call(
+             if reraise is not None and isinstance(excinfo.value, reraise):
+                 raise
+             result = None
+-        duration = instant.elapsed()
+         return cls(
+-            start=duration.start.time,
+-            stop=duration.stop.time,
+-            duration=duration.seconds,
+-            when=when,
+             result=result,
+             excinfo=excinfo,
++            duration=instant.elapsed(),
++            when=when,
+             _ispytest=True,
+         )
+ 
+diff --git a/src/_pytest/subtests.py b/src/_pytest/subtests.py
+index 0c66e289a4d..fc3b391b9d0 100644
+--- a/src/_pytest/subtests.py
++++ b/src/_pytest/subtests.py
+@@ -11,13 +11,13 @@
+ from contextlib import ExitStack
+ from contextlib import nullcontext
+ import dataclasses
+-import time
+ from types import TracebackType
+ from typing import Any
+ from typing import TYPE_CHECKING
+ 
+ import pluggy
+ 
++from _pytest import timing
+ from _pytest._code import ExceptionInfo
+ from _pytest._io.saferepr import saferepr
+ from _pytest.capture import CaptureFixture
+@@ -216,8 +216,7 @@ class _SubTestContextManager:
+     def __enter__(self) -> None:
+         __tracebackhide__ = True
+ 
+-        self._start = time.time()
+-        self._precise_start = time.perf_counter()
++        self._start = timing.Instant()
+         self._exc_info = None
+ 
+         self._exit_stack = ExitStack()
+@@ -242,16 +241,10 @@ def __exit__(
+ 
+         self._exit_stack.close()
+ 
+-        precise_stop = time.perf_counter()
+-        duration = precise_stop - self._precise_start
+-        stop = time.time()
+-
+         call_info = CallInfo[None](
+-            None,
+-            exc_info,
+-            start=self._start,
+-            stop=stop,
+-            duration=duration,
++            result=None,
++            excinfo=exc_info,
++            duration=self._start.elapsed(),
+             when="call",
+             _ispytest=True,
+         )
+diff --git a/src/_pytest/timing.py b/src/_pytest/timing.py
+index 639bd99bd3e..15e16819866 100644
+--- a/src/_pytest/timing.py
++++ b/src/_pytest/timing.py
+@@ -32,14 +32,14 @@ class Instant:
+ 
+     # Creation time of this instant, using time.time(), to measure actual time.
+     # Note: using a `lambda` to correctly get the mocked time via `MockTiming`.
++    # Only pass explicitly to represent timings given as plain floats.
+     # pylint: disable-next=lambda-assignment
+-    time: float = dataclasses.field(default_factory=lambda: time(), init=False)  # noqa: PLW0108
++    time: float = dataclasses.field(default_factory=lambda: time())  # noqa: PLW0108
+ 
+     # Performance counter tick of the instant, used to measure precise elapsed time.
+     # Note: using a `lambda` to correctly get the mocked time via `MockTiming`.
+     perf_count: float = dataclasses.field(
+         default_factory=lambda: perf_counter(),  # noqa: PLW0108
+-        init=False,
+     )
+ 
+     def elapsed(self) -> Duration:
+@@ -64,6 +64,15 @@ def seconds(self) -> float:
+         return self.stop.perf_count - self.start.perf_count
+ 
+ 
++#: Placeholder timing for calls pytest cannot measure, e.g. unittest subtests,
++#: which unittest reports only after the fact without a start time.
++#: Shows up as ``start == stop == duration == 0``.
++UNMEASURED = Duration(
++    start=Instant(time=0.0, perf_count=0.0),
++    stop=Instant(time=0.0, perf_count=0.0),
++)
++
++
+ @dataclasses.dataclass
+ class MockTiming:
+     """Mocks _pytest.timing with a known object that can be used to control timing in tests
+diff --git a/src/_pytest/unittest.py b/src/_pytest/unittest.py
+index 2c9e0dcb80b..0040302219f 100644
+--- a/src/_pytest/unittest.py
++++ b/src/_pytest/unittest.py
+@@ -18,6 +18,7 @@
+ from unittest import TestCase
+ 
+ from _pytest import fixtures
++from _pytest import timing
+ import _pytest._code
+ from _pytest._code import ExceptionInfo
+ from _pytest.compat import assert_never
+@@ -441,12 +442,11 @@ def addSubTest(
+             case unreachable:
+                 assert_never(unreachable)
+ 
++        # unittest reports subtests after the fact, without timing.
+         call_info = CallInfo[None](
+-            None,
+-            exception_info,
+-            start=0,
+-            stop=0,
+-            duration=0,
++            result=None,
++            excinfo=exception_info,
++            duration=timing.UNMEASURED,
+             when="call",
+             _ispytest=True,
+         )
+diff --git a/testing/test_runner.py b/testing/test_runner.py
+index b5c3839c79e..8b59a5ee8c1 100644
+--- a/testing/test_runner.py
++++ b/testing/test_runner.py
+@@ -12,6 +12,7 @@
+ from _pytest import outcomes
+ from _pytest import reports
+ from _pytest import runner
++from _pytest import timing
+ from _pytest._code import ExceptionInfo
+ from _pytest._code.code import ExceptionChainRepr
+ from _pytest.config import ExitCode
+@@ -597,6 +598,26 @@ def raise_assertion():
+     assert "\n" not in repr(ci3)
+ 
+ 
++def test_callinfo_timing(mock_timing) -> None:
++    instant = timing.Instant()
++    timing.sleep(3)
++    duration = instant.elapsed()
++    ci = runner.CallInfo[None](None, None, duration, "call", _ispytest=True)
++    assert ci.start == duration.start.time
++    assert ci.stop == duration.stop.time
++    assert ci.duration == duration.seconds == 3
++
++
++def test_callinfo_timing_setters() -> None:
++    """Plugins assign the timing attributes."""
++    ci = runner.CallInfo[None](None, None, timing.UNMEASURED, "call", _ispytest=True)
++
++    ci.start = 20.0
++    ci.stop = 30.0
++    ci.duration = 9.5
++    assert (ci.start, ci.stop, ci.duration) == (20.0, 30.0, 9.5)
++
++
+ # design question: do we want general hooks in python files?
+ # then something like the following functional tests makes sense
+ 
+diff --git a/testing/test_subtests.py b/testing/test_subtests.py
+index a64897c6fc3..f3eab0099c3 100644
+--- a/testing/test_subtests.py
++++ b/testing/test_subtests.py
+@@ -1040,6 +1040,57 @@ def test(subtests):
+     )
+ 
+ 
++def test_timing_unaffected_by_mocked_time(pytester: pytest.Pytester) -> None:
++    """Tests mocking ``time`` do not corrupt the reported start/stop/duration
++    (#15201, #185)."""
++    reprec = pytester.inline_runsource(
++        """
++        import time
++
++        def test(subtests, monkeypatch):
++            with subtests.test("mocked"):
++                monkeypatch.setattr(time, "time", lambda: 0.0)
++                monkeypatch.setattr(time, "perf_counter", lambda: -1e9)
++        """
++    )
++    reports = [
++        r
++        for r in reprec.getreports("pytest_runtest_logreport")
++        if isinstance(r, SubtestReport)
++    ]
++    assert len(reports) == 1
++    [report] = reports
++    assert report.passed
++    assert report.start > 0
++    assert report.duration >= 0
++    assert report.stop - report.start == pytest.approx(report.duration, abs=1)
++
++
++def test_unittest_subtest_timing(pytester: pytest.Pytester) -> None:
++    """Unittest reports subtests without timing."""
++    reprec = pytester.inline_runsource(
++        """
++        from unittest import TestCase
++
++        class T(TestCase):
++            def test(self):
++                with self.subTest("a"):
++                    assert False
++        """
++    )
++    reports = [
++        r
++        for r in reprec.getreports("pytest_runtest_logreport")
++        if isinstance(r, SubtestReport)
++    ]
++    assert len(reports) == 1
++    [report] = reports
++    assert report.failed
++    assert report.start == 0
++    assert report.stop == 0
++    assert report.duration == 0
++
++
+ class MyEnum(Enum):
+     """Used in test_serialization, needs to be declared at the module level to be pickled."""
+ 
