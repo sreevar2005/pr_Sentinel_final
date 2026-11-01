@@ -49,3 +49,26 @@ def git_diff(rev_range: str, repo: Path = Path()) -> bytes:
     if proc.returncode != 0:
         raise GitError(proc.stderr.decode("utf-8", errors="replace").strip() or "git diff failed")
     return proc.stdout
+
+
+def list_branches(repo: Path) -> list[str]:
+    """Local branches, then remote-tracking ones, for choosing what to compare."""
+    cmd = ["git", "for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"]
+    try:
+        proc = subprocess.run(cmd, cwd=repo, capture_output=True, timeout=30, check=False)
+    except FileNotFoundError as exc:
+        raise GitError("git is not installed or not on PATH") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise GitError("git took too long to list branches") from exc
+    if proc.returncode != 0:
+        message = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise GitError(message or "not a git repository")
+    local: list[str] = []
+    remote: list[str] = []
+    for ref in proc.stdout.decode("utf-8", errors="replace").splitlines():
+        if ref.startswith("refs/heads/"):
+            local.append(ref.removeprefix("refs/heads/"))
+        elif ref.startswith("refs/remotes/") and not ref.endswith("/HEAD"):
+            remote.append(ref.removeprefix("refs/remotes/"))
+    # Only names that git_diff would accept, so every listed branch can be scanned.
+    return [name for name in sorted(local) + sorted(remote) if _RANGE_RE.fullmatch(name)]

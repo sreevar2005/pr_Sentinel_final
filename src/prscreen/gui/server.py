@@ -29,7 +29,7 @@ from prscreen.detectors import all_rules
 from prscreen.diff import DiffParseError, parse_diff
 from prscreen.engine import scan
 from prscreen.formats import json_, markdown
-from prscreen.gitdiff import GitError, git_diff
+from prscreen.gitdiff import GitError, git_diff, list_branches
 from prscreen.gui.samples import SAMPLES
 from prscreen.models import Severity
 
@@ -104,6 +104,23 @@ def run_scan(request: dict[str, Any]) -> dict[str, Any]:
     return {"result": json.loads(json_.render(result)), "markdown": markdown.render(result)}
 
 
+def run_branches(request: dict[str, Any]) -> dict[str, Any]:
+    repo = request.get("repo")
+    if not isinstance(repo, str) or not repo.strip():
+        raise ApiError(HTTPStatus.BAD_REQUEST, "Enter the repository folder first.")
+    folder = Path(repo.strip()).expanduser()
+    if not folder.is_dir():
+        raise ApiError(HTTPStatus.BAD_REQUEST, f"Folder not found: {repo}")
+    try:
+        branches = list_branches(folder)
+    except GitError as exc:
+        raise ApiError(HTTPStatus.BAD_REQUEST, f"Not a git repository: {exc}") from exc
+    if not branches:
+        raise ApiError(HTTPStatus.BAD_REQUEST, "This repository has no branches yet.")
+    base = next((b for b in ("main", "master", "origin/main", "origin/master") if b in branches), branches[0])
+    return {"branches": branches, "base": base}
+
+
 class Handler(BaseHTTPRequestHandler):
     server: GuiServer
     server_version = f"prscreen-gui/{__version__}"
@@ -161,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             self._check_api()
-            if self.path != "/api/scan":
+            if self.path not in ("/api/scan", "/api/branches"):
                 raise ApiError(HTTPStatus.NOT_FOUND, "Not found")
             length = int(self.headers.get("Content-Length") or 0)
             if length > MAX_BODY_BYTES:
@@ -172,7 +189,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise ApiError(HTTPStatus.BAD_REQUEST, "Request body is not JSON.") from exc
             if not isinstance(request, dict):
                 raise ApiError(HTTPStatus.BAD_REQUEST, "Request body must be a JSON object.")
-            self._json(HTTPStatus.OK, run_scan(request))
+            handler = run_scan if self.path == "/api/scan" else run_branches
+            self._json(HTTPStatus.OK, handler(request))
         except ApiError as exc:
             self._json(exc.status, {"error": str(exc)})
 

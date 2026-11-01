@@ -52,6 +52,7 @@ index 06c28e1e30..d2972da5bd 100644
 
 SAMPLES: list[dict[str, Any]] = [
     {
+        "id": "httpx-3773",
         "title": "A real, harmless pull request (encode/httpx #3773)",
         "year": "2025",
         "summary": (
@@ -67,6 +68,7 @@ SAMPLES: list[dict[str, Any]] = [
         "diff": _HTTPX_3773,
     },
     {
+        "id": "toyota-2022",
         "title": "Toyota T-Connect: access key left in a public repository",
         "year": "2022",
         "summary": (
@@ -96,6 +98,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "event-stream-2018",
         "title": "event-stream: a new dependency with an encrypted payload",
         "year": "2018",
         "summary": (
@@ -129,6 +132,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "ua-parser-js-2021",
         "title": "ua-parser-js: hijacked package with an install-time downloader",
         "year": "2021",
         "summary": (
@@ -165,6 +169,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "crossenv-2017",
         "title": "crossenv: a one-typo package that stole environment variables",
         "year": "2017",
         "summary": (
@@ -190,6 +195,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "ctx-2022",
         "title": "ctx (PyPI): a hijacked package that sent out every environment variable",
         "year": "2022",
         "summary": (
@@ -222,6 +228,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "codecov-2021",
         "title": "Codecov: CI pipelines piping a remote script into bash",
         "year": "2021",
         "summary": (
@@ -250,6 +257,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "pytorch-2022",
         "title": "PyTorch nightly: dependency confusion through an extra index",
         "year": "2022",
         "summary": (
@@ -277,6 +285,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "ultralytics-2024",
         "title": "Ultralytics: a branch name injected into a privileged workflow",
         "year": "2024",
         "summary": (
@@ -309,6 +318,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "tj-actions-2025",
         "title": "tj-actions/changed-files: a movable tag repointed to malicious code",
         "year": "2025",
         "summary": (
@@ -337,6 +347,7 @@ SAMPLES: list[dict[str, Any]] = [
         ),
     },
     {
+        "id": "trojan-source-2021",
         "title": "Trojan Source: invisible characters that reorder code (research)",
         "year": "2021",
         "summary": (

@@ -190,3 +190,36 @@ def test_page_script_never_inserts_html():
 def test_code_is_shown_without_ligatures():
     # Fonts such as Cascadia Code draw "!=" as one symbol; a reviewer must see the real characters.
     assert "font-variant-ligatures: none" in (STATIC / "app.css").read_text(encoding="utf-8")
+
+
+def test_branches_endpoint_lists_branches_and_picks_main(server, tmp_path):
+    repo = tmp_path / "branches"
+    repo.mkdir()
+    for args in (
+        ["init", "-q", "-b", "main"],
+        ["config", "user.email", "t@example.invalid"],
+        ["config", "user.name", "t"],
+    ):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+    (repo / "a.txt").write_text("a\n")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-qm", "base"], cwd=repo, check=True)
+    subprocess.run(["git", "branch", "incident/demo"], cwd=repo, check=True)
+    response, data = request(server, "POST", "/api/branches", {"repo": str(repo)})
+    body = json.loads(data)
+    assert response.status == 200
+    assert body == {"branches": ["incident/demo", "main"], "base": "main"}
+
+
+@pytest.mark.parametrize(
+    ("repo", "message"),
+    [("", "Enter the repository folder"), ("Z:/definitely/missing", "Folder not found")],
+)
+def test_branches_endpoint_errors(server, repo, message):
+    response, data = request(server, "POST", "/api/branches", {"repo": repo})
+    assert response.status == 400 and message in json.loads(data)["error"]
+
+
+def test_branches_endpoint_rejects_a_folder_that_is_not_a_repository(server, tmp_path):
+    response, data = request(server, "POST", "/api/branches", {"repo": str(tmp_path)})
+    assert response.status == 400 and "Not a git repository" in json.loads(data)["error"]

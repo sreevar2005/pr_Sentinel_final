@@ -184,12 +184,53 @@ $("copy-md").addEventListener("click", async () => {
   setTimeout(() => { $("copy-md").textContent = "Copy Markdown report"; }, 1500);
 });
 
+// --- git repository mode -------------------------------------------------------------------
+
+async function loadBranches() {
+  const button = $("load-branches");
+  $("error").hidden = true;
+  button.disabled = true;
+  button.textContent = "Loading…";
+  try {
+    const { branches, base } = await api("/api/branches", { repo: $("repo").value.trim() });
+    const compare = $("compare-branch");
+    const baseSelect = $("base-branch");
+    compare.replaceChildren();
+    baseSelect.replaceChildren();
+    branches.forEach((name) => {
+      baseSelect.append(new Option(name, name, false, name === base));
+      if (name !== base) compare.append(new Option(name, name));
+    });
+    $("branch-pickers").hidden = false;
+    updateRange();
+  } catch (error) {
+    $("branch-pickers").hidden = true;
+    $("error").textContent = error.message;
+    $("error").hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Load branches";
+  }
+}
+
+function updateRange() {
+  const base = $("base-branch").value;
+  const compare = $("compare-branch").value;
+  if (base && compare) $("range").value = `${base}...${compare}`;
+}
+
+$("load-branches").addEventListener("click", loadBranches);
+$("repo").addEventListener("keydown", (event) => { if (event.key === "Enter") loadBranches(); });
+$("compare-branch").addEventListener("change", () => { updateRange(); runScan(); });
+$("base-branch").addEventListener("change", updateRange);
+
 // --- examples and rules --------------------------------------------------------------------
 
 async function loadSamples() {
   const { samples } = await api("/api/samples");
   const select = $("sample");
-  samples.forEach((sample, index) => select.append(new Option(`${sample.year} · ${sample.title}`, String(index))));
+  samples.forEach((sample, index) =>
+    select.append(new Option(sample.year ? `${sample.year} · ${sample.title}` : sample.title, String(index))));
   select.addEventListener("change", () => {
     if (select.value === "") return;
     const sample = samples[Number(select.value)];
@@ -209,14 +250,21 @@ async function loadSamples() {
 function showIncident(sample) {
   $("incident").hidden = !sample;
   if (!sample) return;
-  $("incident-year").textContent = sample.year;
+  $("incident-year").textContent = sample.year || "";
   $("incident-title").textContent = sample.title;
-  $("incident-summary").textContent = sample.summary;
-  $("incident-recreation").textContent = `In this example: ${sample.recreation}`;
+  const sources = Array.isArray(sample.sources) ? sample.sources : [];
+  // An older prscreen server sends examples without these fields: say so instead of "undefined".
+  const stale = !sample.recreation || sources.length === 0;
+  $("incident-recreation").textContent = stale
+    ? "This prscreen window is older than the page. Close it and start prscreen gui again to see the incident details and sources."
+    : `In this example: ${sample.recreation}`;
+  $("incident-summary").textContent = sample.summary || "";
+  $("incident-year").hidden = !sample.year;
+  $("incident-sources").parentElement.hidden = sources.length === 0;
   const links = $("incident-sources");
   links.replaceChildren();
-  sample.sources.forEach((source) => {
-    if (!/^https:\/\//.test(source.url)) return; // only ever link to https pages
+  sources.forEach((source) => {
+    if (!source || typeof source.url !== "string" || !/^https:\/\//.test(source.url)) return; // https only
     const link = el("a", "", source.name);
     link.href = source.url;
     link.target = "_blank";

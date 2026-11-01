@@ -47,15 +47,26 @@
         </div>
 
         <div id="mode-git" hidden>
-          <div class="grid2">
-            <label>Repository folder
-              <input id="repo" type="text" placeholder="D:\projects\my-app" spellcheck="false">
+          <div class="row folder-row">
+            <label class="grow">Repository folder (a local clone)
+              <input id="repo" type="text" placeholder="D:\projects\prscreen-incidents" spellcheck="false">
             </label>
-            <label>Changes to scan
-              <input id="range" type="text" value="main...HEAD" spellcheck="false">
+            <button id="load-branches" class="ghost">Load branches</button>
+          </div>
+          <div class="grid2" id="branch-pickers" hidden>
+            <label>Changes on branch
+              <select id="compare-branch"></select>
+            </label>
+            <label>Compared with
+              <select id="base-branch"></select>
             </label>
           </div>
-          <p class="hint">Scans what changed on HEAD since it branched from main, like a pull request. No code is run.</p>
+          <label>Range scanned
+            <input id="range" type="text" value="main...HEAD" spellcheck="false">
+          </label>
+          <p class="hint">Scans what the branch changed since it split from the base, exactly like a pull
+            request would show. No code from the repository is run. To try it, clone
+            <code>github.com/sreevar2005/prscreen-incidents</code>: every branch there recreates a real incident.</p>
         </div>
 
         <div class="row between actions">
