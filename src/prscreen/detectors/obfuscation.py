@@ -165,9 +165,9 @@ _DECODE_AND_RUN_RE = re.compile(
     r"__import__\s*\(\s*[\"'](?:base64|zlib|codecs|marshal)[\"']\)|bytearray\.fromhex|\w+\.decode\()"
     r"|\beval\s*\(\s*(?:atob|Buffer\.from|unescape|decodeURIComponent|String\.fromCharCode|escape)\b"
     r"|\b(?:new\s+)?Function\s*\(\s*(?:atob|Buffer\.from)\b"
-    r"|(?i:\bpowershell(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\s+[A-Za-z0-9+/=]{40,})"
-    r"|(?i:\bFromBase64String\b.*\b(?:iex|Invoke-Expression)\b|\b(?:iex|Invoke-Expression)\b.*\bFromBase64String\b)"
-    r"|\bbase64\s+(?:-d|-D|--decode)\b[^|]*\|\s*(?:ba|z)?sh\b"
+    r"|(?i:\bpowershell(?:\.exe)?\b.{0,300}\s-(?:e|en|enc|encodedcommand)\s+[A-Za-z0-9+/=]{40,})"
+    r"|(?i:\bFromBase64String\b.{0,300}\b(?:iex|Invoke-Expression)\b|\b(?:iex|Invoke-Expression)\b.{0,300}\bFromBase64String\b)"
+    r"|\bbase64\s+(?:-d|-D|--decode)\b[^|]{0,300}\|\s*(?:ba|z)?sh\b"
     r"|\becho\s+[\"']?[A-Za-z0-9+/=]{40,}[\"']?\s*\|\s*base64\s+(?:-d|-D|--decode)"
 )
 _LONG_LINE_CHARS = 1000

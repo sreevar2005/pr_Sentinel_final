@@ -109,9 +109,9 @@ _TOKENS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
         ("SendGrid key", r"\bSG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}\b"),
     )
 )
-_CREDENTIAL_NAME = r"[\w.-]*(?:password|passwd|secret|api[_-]?key|access[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret)[\w.-]*"  # noqa: E501
+_CREDENTIAL_NAME = r"[\w.-]{0,40}(?:password|passwd|secret|api[_-]?key|access[_-]?key|auth[_-]?token|access[_-]?token|private[_-]?key|client[_-]?secret)[\w.-]{0,40}"  # noqa: E501
 _ASSIGNMENT_RE = re.compile(
-    rf"""(?i)\b({_CREDENTIAL_NAME})["']?\s*(?::=|=>|[:=])\s*[bru]?["']([^"'\s]{{8,}})["']"""
+    rf"""(?i)\b({_CREDENTIAL_NAME})["']?\s*(?::=|=>|[:=])\s*[bru]?["']([^"'\s]{{8,200}})["']"""
 )
 # Keys that describe a credential rather than hold one: PASSWORD_FIELD = "password_input".
 _DESCRIPTIVE_KEY_RE = re.compile(
@@ -123,7 +123,9 @@ _PLACEHOLDER_RE = re.compile(
     r"<[^>]*>|\$\{|\{\{|%\(|^\$|test|secret_here|todo|replace)"
 )
 _WORDS_ONLY_RE = re.compile(r"^[a-z]+(?:[_\-.][a-z]+)*$")
-_URL_CREDENTIAL_RE = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.\-]*://[^/\s:@\"'<>]+:([^/\s@\"'<>]+)@[^/\s\"'<>]+")
+_URL_CREDENTIAL_RE = re.compile(
+    r"\b[a-zA-Z][a-zA-Z0-9+.\-]{0,20}://[^/\s:@\"'<>]{1,100}:([^/\s@\"'<>]{1,200})@[^/\s\"'<>]{1,200}"
+)
 _URL_PLACEHOLDERS = frozenset("password pass pwd secret xxx changeme passwd pw p".split())
 
 _ENV_FILE_RE = re.compile(r"^\.env(?:\.[\w-]+)?$")

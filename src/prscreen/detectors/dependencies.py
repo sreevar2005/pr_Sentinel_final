@@ -134,9 +134,9 @@ _SOURCE_PATTERNS: tuple[tuple[re.Pattern[str], str, Severity], ...] = (
      Severity.MEDIUM),
     (re.compile(r"""https?://[^\s"']+\.(?:tgz|tar\.gz|zip|whl)\b|["']\s*:\s*["']file:"""),
      "Installs from a tarball or local path.", Severity.MEDIUM),
-    (re.compile(r"^\s*(?:@[\w-]+:)?registry\s*=|\bnpmRegistryServer\s*:|^\s*replace\s+\S+.*=>"),
+    (re.compile(r"^\s*(?:@[\w-]+:)?registry\s*=|\bnpmRegistryServer\s*:|^\s*replace\s+\S+.{0,300}=>"),
      "Redirects where packages come from.", Severity.MEDIUM),
-    (re.compile(r"""^\s*source\s+["'](?!https://rubygems\.org)|\bgem\s+.*\b(?:git|github|path)\s*:"""),
+    (re.compile(r"""^\s*source\s+["'](?!https://rubygems\.org)|\bgem\s+.{0,300}\b(?:git|github|path)\s*:"""),
      "Uses a gem source other than rubygems.org.", Severity.MEDIUM),
 )  # fmt: skip
 

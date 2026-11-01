@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 
-from prscreen.detectors import Detector, all_rules, default_detectors
+from prscreen.detectors import MAX_SCAN_LINE_CHARS, Detector, all_rules, default_detectors
 from prscreen.detectors.secrets import redact
 from prscreen.diff import Diff
 from prscreen.models import Finding, Rule
@@ -63,7 +63,7 @@ def scan(diff: Diff, detectors: Sequence[Detector] | None = None) -> ScanResult:
         findings=findings,
         rules=all_rules(detectors),
         files_scanned=len(diff.files),
-        skipped=[(change.path, "binary file") for change in diff.files if change.binary],
+        skipped=_skipped(diff),
         capped=dict(capped),
         errors=errors,
     )
@@ -73,3 +73,13 @@ def _drop_superseded(findings: list[Finding]) -> list[Finding]:
     """Drop findings that a more specific rule already reports on the same line."""
     covered = {(f.path, f.line, sup) for f in findings if f.line is not None for sup in f.rule.supersedes}
     return [f for f in findings if (f.path, f.line, f.rule.id) not in covered]
+
+
+def _skipped(diff: Diff) -> list[tuple[str, str]]:
+    skipped = [(change.path, "binary file") for change in diff.files if change.binary]
+    for change in diff.files:
+        long = [line.number for line in change.added if len(line.text) > MAX_SCAN_LINE_CHARS]
+        if long:
+            where = ", ".join(map(str, long[:5])) + (" and more" if len(long) > 5 else "")
+            skipped.append((change.path, f"line {where} scanned only to {MAX_SCAN_LINE_CHARS:,} characters"))
+    return skipped

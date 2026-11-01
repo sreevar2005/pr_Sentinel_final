@@ -1,0 +1,25 @@
+# prscreen screening its own pull requests. This is also the recommended setup for other
+# repositories, except that they reference a released commit of the action instead of "./".
+name: prscreen
+
+on:
+  pull_request:
+
+# Read-only token, no secrets: safe for pull requests from forks.
+permissions:
+  contents: read
+
+jobs:
+  screen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # "./" runs the action from this pull request's own code, which is the point here: it tests
+      # the change. Other repositories pin a release, e.g. uses: sreevar2005/prscreen@<commit-sha>.
+      - uses: ./
+        with:
+          sarif-file: prscreen.sarif

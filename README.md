@@ -5,9 +5,33 @@ human reviewer. It looks for things like leaked secrets, unexpected network call
 code, dangerous shell commands, weakened security settings and CI changes. It only reports:
 it never approves, rejects or edits a pull request, and it never calls code or people malicious.
 
-> **Status: stage 3 of 6.** 44 rules in 8 categories, measured on 63 labeled cases and 95 real
-> merged pull requests ([results](#evaluation)). Packaging as a GitHub Action comes next. See
+> **Status: stage 4 of 6.** 44 rules in 8 categories, measured on 63 labeled cases and 95 real
+> merged pull requests ([results](#evaluation)), packaged as a GitHub Action that needs only a
+> read-only token ([setup](docs/setup.md), [threat model](docs/threat-model.md)). See
 > [Roadmap](#roadmap).
+
+## Use it on GitHub
+
+```yaml
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  screen:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: sreevar2005/prscreen@<commit-sha>
+```
+
+Findings appear as annotations on the changed lines and in the job summary. prscreen needs no
+secrets and no write access, so it works on pull requests from forks. It never comments, approves,
+blocks or edits. [docs/setup.md](docs/setup.md) covers the inputs, SARIF upload, and how to stop a
+PR from simply deleting the check.
 
 ## What it checks
 
@@ -142,6 +166,19 @@ The tool reads hostile input, so it is built to be hard to turn against its user
   Findings get a fingerprint that ignores line numbers, for tracking across pushes.
 - **Failures are visible.** If one detector crashes, the others still report and the result is
   marked incomplete (exit code 1), instead of looking like a clean scan.
+- **Bounded running time.** Every regex uses bounded quantifiers, and line-level rules read at
+  most 50,000 characters per line. Before this was fixed, one crafted line could keep a scan busy
+  for more than 10 minutes; a performance test now checks such lines finish in seconds.
+- **Nothing installed, nothing shadowed.** The action runs `python3 -I` on its own source with no
+  `pip install`. Isolated mode means a PR cannot shadow prscreen's modules by adding a `prscreen/`
+  folder, which a test checks. Inputs reach the program only through environment variables, and a
+  test fails if any workflow script in this repository expands `${{ }}` inline.
+- **A pipeline that follows its own advice.** This repository's workflows use read-only
+  permissions, actions pinned to commit SHAs, and no persisted checkout credentials, and tests
+  enforce all three. prscreen also scans its own workflows in the test suite.
+
+The full analysis, including what prscreen cannot protect against, is in
+[docs/threat-model.md](docs/threat-model.md).
 
 ## Roadmap
 
@@ -150,7 +187,7 @@ The tool reads hostile input, so it is built to be hard to turn against its user
    endpoints, obfuscation, dependency changes, weakened security settings, sensitive paths
 3. ✅ Evaluation corpus of risky and harmless look-alike PRs, an `eval` command, published
    precision and false-alarm numbers
-4. GitHub Action (read-only token, no secrets), CI, threat model, setup guide
+4. ✅ GitHub Action (read-only token, no secrets), CI, threat model, setup guide
 5. Optional AI layer that can explain and add questions but never remove a finding, with
    prompt-injection tests
 6. Demo repository with one PR per category and a clean PR where the tool stays quiet

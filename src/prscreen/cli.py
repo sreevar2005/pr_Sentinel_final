@@ -21,9 +21,10 @@ from prscreen.engine import scan
 from prscreen.formats import FORMATS, render
 from prscreen.formats.markdown import rules_markdown
 from prscreen.gitdiff import GitError, git_diff
+from prscreen.models import Severity
 from prscreen.sanitize import visible
 
-MAX_DIFF_BYTES = 50 * 1024 * 1024
+MAX_DIFF_BYTES = 20 * 1024 * 1024
 EXIT_OK, EXIT_INCOMPLETE, EXIT_USAGE = 0, 1, 2
 
 
@@ -59,7 +60,15 @@ def _parser() -> argparse.ArgumentParser:
     scan_cmd.add_argument("--repo", metavar="DIR", default=".", help="repository for --git (default: .)")
     scan_cmd.add_argument("--format", choices=sorted(FORMATS), default="text", help="output format")
     scan_cmd.add_argument("--output", metavar="PATH", help="write the report here instead of stdout")
+    scan_cmd.add_argument(
+        "--min-severity", choices=("low", "medium", "high"), default="low", help="hide less severe findings"
+    )
     scan_cmd.set_defaults(handler=_scan)
+
+    action = commands.add_parser(
+        "github-action", help="run as the GitHub Action (reads PRSCREEN_* and GITHUB_* variables)"
+    )
+    action.set_defaults(handler=_github_action)
 
     explain = commands.add_parser("explain", help="describe a rule, or list all rules")
     explain.add_argument("rule_id", nargs="?", help="rule ID such as OBF001")
@@ -79,6 +88,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     eval_cmd.set_defaults(handler=_eval)
     return parser
+
+
+def _github_action(args: argparse.Namespace) -> int:
+    from prscreen.action import run
+
+    return run(os.environ)
 
 
 def _eval(args: argparse.Namespace) -> int:
@@ -104,6 +119,8 @@ def _scan(args: argparse.Namespace) -> int:
     except DiffParseError as exc:
         raise UsageError(f"could not parse diff: {exc}") from exc
     result = scan(diff)
+    floor = Severity[args.min_severity.upper()]
+    result.findings = [f for f in result.findings if f.severity >= floor]
     report = render(result, args.format)
 
     if args.output:

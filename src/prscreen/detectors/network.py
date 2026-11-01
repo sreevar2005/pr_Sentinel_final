@@ -89,8 +89,8 @@ CREDENTIAL_FILES = Rule(
 _URL_RE = re.compile(r"\b(?:https?|wss?|ftp)://([A-Za-z0-9.\-]+|\[[0-9A-Fa-f:]+\])(?::\d+)?")
 _IP_RE = re.compile(r"(?:(?<=://)|(?<=[\"'@=]))((?:\d{1,3}\.){3}\d{1,3})(?=[:/\"'\s]|$)")
 _EXFIL_RE = re.compile(
-    r"(?i)(?<![\w-])(?:[\w-]+\.)*(?:webhook\.site|requestbin\.(?:com|net)|pipedream\.net|"
-    r"(?:[\w-]+\.)?m\.pipedream\.net|beeceptor\.com|requestcatcher\.com|hookbin\.com|"
+    r"(?i)(?<![\w-])(?:webhook\.site|requestbin\.(?:com|net)|pipedream\.net|"
+    r"beeceptor\.com|requestcatcher\.com|hookbin\.com|"
     r"pastebin\.com|paste\.ee|hastebin\.com|ghostbin\.\w+|rentry\.co|transfer\.sh|file\.io|"
     r"0x0\.st|temp\.sh|bashupload\.com|ngrok(?:-free)?\.(?:io|app|dev)|serveo\.net|loca\.lt|"
     r"localtunnel\.me|trycloudflare\.com|interact\.sh|oast\.(?:fun|live|me|online|pro|site)|"
@@ -99,9 +99,9 @@ _EXFIL_RE = re.compile(
 )
 _SENDS_DATA_RE = re.compile(
     r"\b(?:requests|httpx|session|client|axios|http|got|superagent)\.(?:post|put|patch)\s*\("
-    r"|\bfetch\s*\([^)]*method\s*:\s*[\"'](?:POST|PUT)|\bsendBeacon\s*\(|\bnew\s+WebSocket\s*\("
-    r"|\burlopen\s*\([^)]*data\s*=|\bcurl\b.*\s(?:-d|--data(?:-\w+)?|-F|--form|-T|--upload-file)\b"
-    r"|\bInvoke-(?:WebRequest|RestMethod)\b.*-Method\s+Post"
+    r"|\bfetch\s*\([^)]{0,300}method\s*:\s*[\"'](?:POST|PUT)|\bsendBeacon\s*\(|\bnew\s+WebSocket\s*\("
+    r"|\burlopen\s*\([^)]{0,300}data\s*=|\bcurl\b.{0,300}\s(?:-d|--data(?:-\w+)?|-F|--form|-T|--upload-file)\b"
+    r"|\bInvoke-(?:WebRequest|RestMethod)\b.{0,300}-Method\s+Post"
 )
 _ALLOWED_HOSTS = (
     "localhost", "example.com", "example.org", "example.net", "github.com", "githubusercontent.com",
@@ -210,7 +210,7 @@ class DataCollectionDetector(PatternDetector):
             r"|\bENV\.to_h\b|\bgetenv\s*\(\s*\)"
         ), "Serialises the whole environment.", where=is_runnable),
         Pattern(CREDENTIAL_FILES, re.compile(
-            r"(?:~|\$HOME|homedir\(\)|expanduser\([^)]*)[^\"'\n]{0,20}/?\.(?:ssh|aws|azure|kube|docker|gnupg)\b"
+            r"(?:~|\$HOME|homedir\(\)|expanduser\([^)]{0,300})[^\"'\n]{0,20}/?\.(?:ssh|aws|azure|kube|docker|gnupg)\b"
             r"|\.ssh/id_\w+|\.aws/credentials|\.docker/config\.json|\.kube/config|\.config/gcloud"
             r"|\.git-credentials|(?<![\w.])\.netrc\b|(?<![\w.])\.pypirc\b|/etc/shadow\b"
             r"|Login Data|Local State|\bCookies\.sqlite\b|logins\.json|key4\.db|wallet\.dat"

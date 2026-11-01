@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+        python: ["3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest
+      - run: uv run prscreen eval
+
+  action-smoke-test:
+    # Runs the composite action exactly as a user would, on a commit range with a known finding.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Make a commit with a known risky change
+        run: |
+          git config user.name ci
+          git config user.email ci@example.invalid
+          git checkout -b smoke
+          # Assembled at run time so this workflow file does not trip prscreen's own CFG001 rule.
+          printf 'resp = requests.get(url, verify=%s)\n' False > smoke_test_target.py
+          git add smoke_test_target.py
+          git commit -qm "smoke"
+      - id: prscreen
+        uses: ./
+        with:
+          base: HEAD~1
+          head: HEAD
+          annotate: none
+          sarif-file: smoke.sarif
+      - name: Check the outputs
+        env:
+          MEDIUM: ${{ steps.prscreen.outputs.medium }}
+          SARIF: ${{ steps.prscreen.outputs.sarif-file }}
+        run: |
+          test "$MEDIUM" -ge 1
+          test -s "$SARIF"
+          grep -q '"ruleId": "CFG001"' "$SARIF"

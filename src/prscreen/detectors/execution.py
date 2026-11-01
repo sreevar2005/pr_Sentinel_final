@@ -109,10 +109,10 @@ STARTUP_FILE = Rule(
 _SHELLS = r"(?:sudo\s+(?:-\S+\s+)*)?(?:ba|z|da|k|fi)?sh\b"
 _INTERPRETERS = r"(?:sudo\s+(?:-\S+\s+)*)?(?:python[0-9.]*|perl|ruby|node|php)\b"
 _PIPE_TO_SHELL_RE = re.compile(
-    rf"\b(?:curl|wget)\b[^|;&\n]*\|\s*(?:{_SHELLS}|{_INTERPRETERS})"
+    rf"\b(?:curl|wget)\b[^|;&\n]{{0,500}}\|\s*(?:{_SHELLS}|{_INTERPRETERS})"
     rf"|\b(?:ba|z)?sh\s+(?:-c\s+)?[\"']?(?:<\(|\$\()\s*(?:curl|wget)\b"
-    r"|(?i:\b(?:iex|invoke-expression)\b.*\b(?:downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b)"
-    r"|(?i:\b(?:downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b.*\|\s*(?:iex|invoke-expression)\b)"
+    r"|(?i:\b(?:iex|invoke-expression)\b.{0,300}\b(?:downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b)"
+    r"|(?i:\b(?:downloadstring|iwr|irm|invoke-webrequest|invoke-restmethod)\b.{0,300}\|\s*(?:iex|invoke-expression)\b)"
 )
 
 
@@ -144,7 +144,7 @@ class ExecutionDetector(PatternDetector):
         Pattern(SHELL_COMMAND, re.compile(r"(?<![\w.$])exec(?:Sync)?\s*\(\s*[`'\"]"),
                 "Runs a command string through a shell (child_process.exec).", where=_javascript),
         Pattern(SHELL_COMMAND, re.compile(
-            r"\bsubprocess\.\w+\s*\(.*\bshell\s*=\s*True"
+            r"\bsubprocess\.\w+\s*\(.{0,300}\bshell\s*=\s*True"
             r"|\bos\.(?:system|popen)\s*\("
             r"|\bRuntime\.getRuntime\(\)\.exec\s*\("
             r"|\bexec\.Command(?:Context)?\((?:ctx,\s*)?\"(?:/bin/)?(?:ba)?sh\",\s*\"-c\""
@@ -156,11 +156,11 @@ class ExecutionDetector(PatternDetector):
         ), "Imports or calls Node's child_process.", severity=Severity.LOW),
         Pattern(UNSAFE_DESERIALIZATION, re.compile(
             r"\b(?:c?[Pp]ickle|dill|marshal|shelve)\.loads?\s*\("
-            r"|\byaml\.load(?:_all)?\s*\((?![^)]*Loader\s*=\s*(?:yaml\.)?C?SafeLoader)"
+            r"|\byaml\.load(?:_all)?\s*\((?![^)]{0,300}Loader\s*=\s*(?:yaml\.)?C?SafeLoader)"
             r"|\byaml\.(?:unsafe_load|full_load)(?:_all)?\s*\("
             r"|\bjsonpickle\.decode\s*\(|\bnew\s+ObjectInputStream\b|\bBinaryFormatter\b"
             r"|(?<![\w.>$])unserialize\s*\(|\bMarshal\.load\b"
-            r"|\btorch\.load\s*\((?![^)]*weights_only\s*=\s*True)"
+            r"|\btorch\.load\s*\((?![^)]{0,300}weights_only\s*=\s*True)"
         ), "Decodes data with a format that can run code."),
     )  # fmt: skip
 

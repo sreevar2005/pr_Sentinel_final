@@ -104,18 +104,18 @@ SELF_HOSTED = Rule(
     benign="Normal for private repositories and for jobs that never run on PRs from forks.",
 )
 
-_KEY_RE = re.compile(r"^\s*-?\s*([A-Za-z_][\w-]*)\s*:")
+_KEY_RE = re.compile(r"^\s*(?:-\s*)?([A-Za-z_][\w-]*)\s*:")
 _UNTRUSTED_RE = re.compile(
-    r"\$\{\{[^}]*\b(?:github\.head_ref|github\.event\.(?:"
+    r"\$\{\{[^}]{0,200}\b(?:github\.head_ref|github\.event\.(?:"
     r"issue\.(?:title|body)|pull_request\.(?:title|body|head\.ref|head\.label|head\.repo\.default_branch)"
     r"|comment\.body|review\.body|review_comment\.body|discussion\.(?:title|body)"
-    r"|pages\.[^}]*\.page_name|(?:head_commit|commits\[?[^}]*?\]?)\.(?:message|author\.(?:email|name))"
+    r"|pages\.[^}]{0,200}\.page_name|(?:head_commit|commits\[?[^}]{0,200}?\]?)\.(?:message|author\.(?:email|name))"
     r"|workflow_run\.(?:head_branch|head_commit\.message|display_title)"
-    r"))[^}]*\}\}"
+    r"))[^}]{0,200}\}\}"
 )
 _INLINE_RUN_RE = re.compile(r"[{,]\s*[\"']?(?:run|script)[\"']?\s*:")
 _PR_TARGET_RE = re.compile(r"\bpull_request_target\b")
-_WORKFLOW_RUN_RE = re.compile(r"^\s*-?\s*workflow_run\s*:")
+_WORKFLOW_RUN_RE = re.compile(r"^\s*(?:-\s*)?workflow_run\s*:")
 _HEAD_REF_RE = re.compile(
     r"\$\{\{\s*(?:github\.event\.pull_request\.head\.(?:sha|ref)|github\.head_ref"
     r"|github\.event\.workflow_run\.head_(?:sha|branch))\s*\}\}|refs/pull/"
@@ -125,13 +125,13 @@ _WRITE_SCOPE_RE = re.compile(
     r"^\s*(contents|actions|packages|pull-requests|issues|security-events|deployments|statuses|checks|"
     r"pages|repository-projects|attestations|discussions)\s*:\s*write\b"
 )
-_USES_RE = re.compile(r"^\s*-?\s*uses\s*:\s*[\"']?([^\s\"'#]+)")
+_USES_RE = re.compile(r"^\s*(?:-\s*)?uses\s*:\s*[\"']?([^\s\"'#]+)")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _TRUSTED_OWNERS = frozenset({"actions", "github"})
 _SECRET_EXPOSURE: tuple[tuple[re.Pattern[str], str, Severity], ...] = (
     (re.compile(r"toJSON\(\s*secrets\s*\)"), "Serialises every secret at once.", Severity.HIGH),
     (
-        re.compile(r"\b(?:echo|printf|cat|tee|print)\b[^#]*\$\{\{\s*secrets\."),
+        re.compile(r"\b(?:echo|printf|cat|tee|print)\b[^#]{0,300}\$\{\{\s*secrets\."),
         "Prints a secret.",
         Severity.MEDIUM,
     ),
@@ -142,7 +142,7 @@ _SECRET_EXPOSURE: tuple[tuple[re.Pattern[str], str, Severity], ...] = (
     ),
     (re.compile(r"^\s*secrets\s*:\s*inherit\b"), "Passes all secrets to a called workflow.", Severity.LOW),
 )
-_SELF_HOSTED_RE = re.compile(r"^\s*runs-on\s*:.*\bself-hosted\b")
+_SELF_HOSTED_RE = re.compile(r"^\s*runs-on\s*:.{0,300}\bself-hosted\b")
 
 
 class WorkflowDetector(Detector):

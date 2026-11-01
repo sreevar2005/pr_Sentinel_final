@@ -20,6 +20,11 @@ class Detector(ABC):
     def scan(self, diff: Diff) -> Iterator[Finding]: ...
 
 
+MAX_SCAN_LINE_CHARS = 50_000
+"""Line-level rules see at most this much of a line, which bounds the time one crafted line can
+cost. Longer lines are reported by OBF006 and listed as partly scanned."""
+
+
 class LineDetector(Detector):
     """Runs :meth:`check_line` on every added line of every text file that is not deleted."""
 
@@ -28,6 +33,8 @@ class LineDetector(Detector):
             if change.binary or change.kind is ChangeKind.DELETED or not self.applies_to(change.path):
                 continue
             for line in change.added:
+                if len(line.text) > MAX_SCAN_LINE_CHARS:
+                    line = DiffLine(line.number, line.text[:MAX_SCAN_LINE_CHARS])
                 yield from self.check_line(change, line)
 
     def applies_to(self, path: str) -> bool:

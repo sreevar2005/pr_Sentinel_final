@@ -1,0 +1,58 @@
+name: prscreen
+description: >-
+  Screens a pull request's diff for suspicious or risky changes and explains the evidence.
+  Advisory only: it never approves, blocks or edits a pull request.
+author: prscreen contributors
+branding:
+  icon: shield
+  color: orange
+
+inputs:
+  base:
+    description: Commit to diff from. Defaults to the pull request's base commit.
+    default: ${{ github.event.pull_request.base.sha }}
+  head:
+    description: Commit to diff to. Defaults to the pull request's head commit.
+    default: ${{ github.event.pull_request.head.sha }}
+  annotate:
+    description: >-
+      Lowest severity shown as inline annotations on the PR (low, medium, high or none). The job
+      summary always lists every finding.
+    default: medium
+  sarif-file:
+    description: >-
+      Also write a SARIF report to this path, relative to the workspace, for
+      github/codeql-action/upload-sarif. Empty means no SARIF file.
+    default: ""
+
+outputs:
+  findings:
+    description: Number of findings.
+    value: ${{ steps.scan.outputs.findings }}
+  high:
+    description: Number of high-severity findings.
+    value: ${{ steps.scan.outputs.high }}
+  medium:
+    description: Number of medium-severity findings.
+    value: ${{ steps.scan.outputs.medium }}
+  low:
+    description: Number of low-severity findings.
+    value: ${{ steps.scan.outputs.low }}
+  sarif-file:
+    description: Path of the SARIF report, if one was written.
+    value: ${{ steps.scan.outputs.sarif-file }}
+
+runs:
+  using: composite
+  steps:
+    # Inputs reach the program only through env, never by expansion inside the script, so a
+    # crafted branch name or input cannot become shell code. run.py runs Python in isolated mode
+    # so the repository under review cannot shadow prscreen's own modules. Nothing is installed.
+    - id: scan
+      shell: bash
+      env:
+        PRSCREEN_BASE: ${{ inputs.base }}
+        PRSCREEN_HEAD: ${{ inputs.head }}
+        PRSCREEN_ANNOTATE: ${{ inputs.annotate }}
+        PRSCREEN_SARIF: ${{ inputs.sarif-file }}
+      run: python3 -I "$GITHUB_ACTION_PATH/run.py" github-action

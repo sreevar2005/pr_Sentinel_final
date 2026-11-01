@@ -84,10 +84,10 @@ CHECK_REMOVED = Rule(
 _TLS_RE = re.compile(
     r"\bverify\s*=\s*False\b|\brejectUnauthorized\s*:\s*false\b|NODE_TLS_REJECT_UNAUTHORIZED[\"']?\s*[=:]\s*[\"']?0"
     r"|\bInsecureSkipVerify\s*:\s*true\b|\bssl\._create_unverified_context\b|\bCERT_NONE\b"
-    r"|\bcheck_hostname\s*=\s*False\b|\bcurl\b.*\s(?:-k|--insecure)\b|\bwget\b.*--no-check-certificate"
+    r"|\bcheck_hostname\s*=\s*False\b|\bcurl\b.{0,300}\s(?:-k|--insecure)\b|\bwget\b.{0,300}--no-check-certificate"
     r"|\bstrict-ssl\s*[=:]\s*false\b|\bsslverify\s*[=:]\s*(?:false|0)\b|--trusted-host\b"
-    r"|-SkipCertificateCheck\b|\bServerCertificateValidationCallback\b.*=>\s*true"
-    r"|\bVERIFY_NONE\b|\bsetHostnameVerifier\s*\(.*ALLOW_ALL|\bTrustAllCerts\b|\bInsecureRequestWarning\b"
+    r"|-SkipCertificateCheck\b|\bServerCertificateValidationCallback\b.{0,300}=>\s*true"
+    r"|\bVERIFY_NONE\b|\bsetHostnameVerifier\s*\(.{0,300}ALLOW_ALL|\bTrustAllCerts\b|\bInsecureRequestWarning\b"
 )
 _CORS_RE = re.compile(
     r"Access-Control-Allow-Origin[\"']?\s*[:,]\s*[\"']\*|\bCORS_(?:ORIGIN_ALLOW_ALL|ALLOW_ALL_ORIGINS)\s*=\s*True"
@@ -95,7 +95,7 @@ _CORS_RE = re.compile(
     r"|\bcors\s*\(\s*\)"
 )
 _PROTECTION_RE = re.compile(
-    r"^\s*DEBUG\s*=\s*True\b|\.run\s*\(.*\bdebug\s*=\s*True|@csrf_exempt\b|\bWTF_CSRF_ENABLED\s*=\s*False"
+    r"^\s*DEBUG\s*=\s*True\b|\.run\s*\(.{0,300}\bdebug\s*=\s*True|@csrf_exempt\b|\bWTF_CSRF_ENABLED\s*=\s*False"
     r"|\.csrf\s*\(\s*\)\s*\.\s*disable\s*\(|\bcsrf\s*\(\s*(?:AbstractHttpConfigurer::)?disable\s*\)"
     r"|\b(?:SESSION|CSRF)_COOKIE_SECURE\s*=\s*False|\bSESSION_COOKIE_HTTPONLY\s*=\s*False"
     r"|\bhttpOnly\s*:\s*false\b|\bprotect_from_forgery\s+with:\s*:null_session|\bskip_forgery_protection\b"
@@ -103,7 +103,7 @@ _PROTECTION_RE = re.compile(
 )
 _WORLD_WRITABLE_RE = re.compile(
     r"\bchmod\s+(?:-\w+\s+)*(?:0?777|0?666|[ugoa]*o[ugoa]*\+[rx]*w|a\+[rx]*w)\b"
-    r"|\b(?:os\.)?chmod\s*\([^)]*,\s*0o?777\b|\bumask\s*\(\s*0+\s*\)|\bumask\s+0+\b"
+    r"|\b(?:os\.)?chmod\s*\([^)]{0,300},\s*0o?777\b|\bumask\s*\(\s*0+\s*\)|\bumask\s+0+\b"
 )
 _CHECK_RE = re.compile(
     r"@(?:login_required|permission_required|user_passes_test|staff_member_required|csrf_protect|"

@@ -27,9 +27,11 @@ def escape_property(text: str) -> str:
     return escape_data(text).replace(":", "%3A").replace(",", "%2C")
 
 
-def render(result: ScanResult) -> str:
+def render(result: ScanResult, min_severity: Severity | None = Severity.LOW) -> str:
+    """Annotations for findings at ``min_severity`` or above (``None``: no annotations at all)."""
     out = []
-    for f in result.findings:
+    shown = [f for f in result.findings if min_severity is not None and f.severity >= min_severity]
+    for f in shown:
         props = [f"file={escape_property(visible(f.path))}"]
         if f.line:
             props.append(f"line={f.line}")
@@ -39,5 +41,11 @@ def render(result: ScanResult) -> str:
         out.append(f"::{_LEVEL[f.severity]} {','.join(props)}::{escape_data(visible(message))}")
     for error in result.errors:
         out.append(f"::error title=prscreen incomplete::{escape_data(visible(error))}")
-    out.append(f"::notice title=prscreen::{escape_data(formats.summary_line(result))}")
+    summary = formats.summary_line(result)
+    hidden = len(result.findings) - len(shown)
+    if hidden:
+        summary += (
+            f" {hidden} lower-severity {'finding is' if hidden == 1 else 'findings are'} in the job summary."
+        )
+    out.append(f"::notice title=prscreen::{escape_data(summary)}")
     return "\n".join(out) + "\n"
