@@ -19,6 +19,7 @@ from prscreen.detectors import all_rules
 from prscreen.diff import DiffParseError, parse_diff
 from prscreen.engine import scan
 from prscreen.formats import FORMATS, render
+from prscreen.formats.markdown import rules_markdown
 from prscreen.gitdiff import GitError, git_diff
 from prscreen.sanitize import visible
 
@@ -62,6 +63,9 @@ def _parser() -> argparse.ArgumentParser:
 
     explain = commands.add_parser("explain", help="describe a rule, or list all rules")
     explain.add_argument("rule_id", nargs="?", help="rule ID such as OBF001")
+    explain.add_argument(
+        "--markdown", action="store_true", help="print the full rule reference as Markdown (docs/rules.md)"
+    )
     explain.set_defaults(handler=_explain)
     return parser
 
@@ -122,6 +126,9 @@ def _write_stdout(report: str, fmt: str) -> None:
 
 def _explain(args: argparse.Namespace) -> int:
     rules = all_rules()
+    if args.markdown:
+        sys.stdout.write(rules_markdown(rules))
+        return EXIT_OK
     if not args.rule_id:
         for rule in rules:
             print(f"{rule.id}  {rule.severity.label:<6}  {rule.category.value:<16}  {rule.title}")

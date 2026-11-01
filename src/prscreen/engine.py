@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from prscreen.detectors import Detector, all_rules, default_detectors
+from prscreen.detectors.secrets import redact
 from prscreen.diff import Diff
 from prscreen.models import Finding, Rule
 
@@ -42,6 +43,7 @@ def scan(diff: Diff, detectors: Sequence[Detector] | None = None) -> ScanResult:
     for detector in detectors:
         try:
             for finding in detector.scan(diff):
+                finding = replace(finding, evidence=redact(finding.evidence))
                 key = (finding.rule.id, finding.path, finding.line, finding.evidence)
                 if key in seen:
                     continue

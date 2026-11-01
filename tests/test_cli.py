@@ -97,3 +97,12 @@ def test_scan_git_range_ignores_repo_controlled_diff_programs(tmp_path, capsys):
     assert main(["scan", "--git", "HEAD~1...HEAD", "--repo", str(repo), "--format", "json"]) == 0
     (finding,) = json.loads(capsys.readouterr().out)["findings"]
     assert (finding["path"], finding["line"]) == ("a.py", 2)
+
+
+def test_docs_rules_md_is_up_to_date(capsys):
+    assert main(["explain", "--markdown"]) == 0
+    expected = capsys.readouterr().out
+    docs = Path(__file__).parent.parent / "docs" / "rules.md"
+    assert docs.read_text(encoding="utf-8") == expected, (
+        "regenerate: prscreen explain --markdown > docs/rules.md"
+    )

@@ -38,13 +38,42 @@ class LineDetector(Detector):
 
 
 def default_detectors() -> list[Detector]:
-    from prscreen.detectors.obfuscation import BidiControlDetector
+    from prscreen.detectors.ci import WorkflowDetector
+    from prscreen.detectors.config import RemovedCheckDetector, SecurityConfigDetector
+    from prscreen.detectors.dependencies import DependencyDetector
+    from prscreen.detectors.execution import ExecutionDetector, InstallHookDetector
+    from prscreen.detectors.network import DataCollectionDetector, NetworkDetector
+    from prscreen.detectors.obfuscation import (
+        BidiControlDetector,
+        BinaryFileDetector,
+        EncodedPayloadDetector,
+        LookalikeDetector,
+    )
+    from prscreen.detectors.paths import SensitivePathDetector
+    from prscreen.detectors.secrets import SecretFileDetector, SecretsDetector
 
-    return [BidiControlDetector()]
+    return [
+        SecretsDetector(),
+        SecretFileDetector(),
+        ExecutionDetector(),
+        InstallHookDetector(),
+        WorkflowDetector(),
+        NetworkDetector(),
+        DataCollectionDetector(),
+        BidiControlDetector(),
+        LookalikeDetector(),
+        EncodedPayloadDetector(),
+        BinaryFileDetector(),
+        SecurityConfigDetector(),
+        RemovedCheckDetector(),
+        DependencyDetector(),
+        SensitivePathDetector(),
+    ]
 
 
 def all_rules(detectors: Iterable[Detector] | None = None) -> list[Rule]:
-    rules: list[Rule] = []
+    rules: dict[str, Rule] = {}
     for detector in default_detectors() if detectors is None else detectors:
-        rules.extend(detector.rules)
-    return sorted(rules, key=lambda rule: rule.id)
+        for rule in detector.rules:
+            rules[rule.id] = rule
+    return sorted(rules.values(), key=lambda rule: rule.id)

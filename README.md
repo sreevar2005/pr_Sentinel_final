@@ -5,9 +5,38 @@ human reviewer. It looks for things like leaked secrets, unexpected network call
 code, dangerous shell commands, weakened security settings and CI changes. It only reports:
 it never approves, rejects or edits a pull request, and it never calls code or people malicious.
 
-> **Status: stage 1 of 6.** The diff parser, the finding model, five output formats and the CLI
-> are done and tested. One detector (hidden bidirectional characters, "Trojan Source") is in
-> place to prove the pipeline end to end. See [Roadmap](#roadmap).
+> **Status: stage 2 of 6.** The CLI, five output formats and 44 rules in 8 categories are done
+> and unit-tested, each rule against both risky lines and harmless look-alikes. Measured
+> precision and false-alarm rates come in stage 3. See [Roadmap](#roadmap).
+
+## What it checks
+
+| Category | Rules | Examples |
+| --- | --- | --- |
+| Secrets | SEC001–005 | private keys, cloud and SaaS tokens, hardcoded passwords, `.env` files |
+| Execution | EXE001–006 | `curl … \| sh`, `eval`, `shell=True`, `pickle.loads`, npm install hooks, `.pth` files |
+| CI | CI001–007 | `pull_request_target` with PR checkout, `${{ }}` script injection, unpinned actions |
+| Network and data | NET001–005 | raw public IPs, webhook and paste sites, new hosts that receive data, env dumps |
+| Obfuscation | OBF001–007 | Trojan Source, invisible characters, homoglyphs, decode-and-exec, binaries |
+| Security config | CFG001–005 | TLS verification off, wildcard CORS, CSRF or debug toggles, removed auth checks |
+| Dependencies | DEP001–005 | new packages, one-typo names, extra indexes, lockfile-only edits, odd registries |
+| Sensitive paths | PATH001–004 | CI config, CODEOWNERS, editor tasks and git hooks, auth and crypto modules |
+
+The full reference, with why each pattern matters and when it is harmless, is in
+[docs/rules.md](docs/rules.md) (generated from the code, so it never drifts).
+
+Rules are deliberately conservative where false alarms would be common:
+
+- Matches in test files drop one step in severity and confidence.
+- Comments are skipped for code rules.
+- Vendored and minified files are skipped by most rules.
+- New network hosts are reported once per file.
+- Version bumps are not reported as new dependencies.
+- Secret values are masked everywhere, including in other rules' evidence.
+
+Scanning prscreen's own source flags its pattern tables (the regexes contain the very strings
+they look for). That is expected, and it shows why every finding is a prompt to look rather than
+a verdict.
 
 ## Quick start
 
@@ -78,7 +107,7 @@ The tool reads hostile input, so it is built to be hard to turn against its user
 ## Roadmap
 
 1. ✅ Diff parser, finding model, output formats, `scan` and `explain` commands
-2. Detectors: secrets, dangerous execution and install hooks, CI/workflow weakening, new network
+2. ✅ Detectors: secrets, dangerous execution and install hooks, CI/workflow weakening, new network
    endpoints, obfuscation, dependency changes, weakened security settings, sensitive paths
 3. Evaluation corpus of risky and harmless look-alike PRs, an `eval` command, published
    precision and false-alarm numbers
