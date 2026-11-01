@@ -45,8 +45,9 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "BLE"]
 ignore = ["SIM905"]  # word lists read better as one string split on spaces
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+"tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
 "src/prscreen/gitdiff.py" = ["S603", "S607"]  # fixed argv list, shell=False, validated revision
+"src/prscreen/gui/samples.py" = ["E501"]  # sample diff lines
 "scripts/demo.py" = ["S603", "S607", "E501"]  # runs git on its own temp repo; long lines are file contents
 
 [tool.mypy]

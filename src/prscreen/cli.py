@@ -98,7 +98,18 @@ def _parser() -> argparse.ArgumentParser:
         "--format", choices=("text", "markdown", "json"), default="text", help="report format"
     )
     eval_cmd.set_defaults(handler=_eval)
+
+    gui = commands.add_parser("gui", help="open the prscreen page in your browser (local only)")
+    gui.add_argument("--port", type=int, default=8765, help="port on 127.0.0.1 (default: 8765, 0 = any free)")
+    gui.add_argument("--no-browser", action="store_true", help="print the link instead of opening it")
+    gui.set_defaults(handler=_gui)
     return parser
+
+
+def _gui(args: argparse.Namespace) -> int:
+    from prscreen.gui.server import serve
+
+    return serve(args.port, open_browser=not args.no_browser)
 
 
 def _github_action(args: argparse.Namespace) -> int:

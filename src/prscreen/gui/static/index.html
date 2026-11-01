@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>prscreen</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <h1>prscreen</h1>
+        <p class="tagline">Screens pull request changes for risky code and explains the evidence.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" role="tab" data-tab="scan" aria-selected="true">Scan</button>
+      <button class="tab" role="tab" data-tab="rules" aria-selected="false">Rules</button>
+      <button class="tab" role="tab" data-tab="about" aria-selected="false">About</button>
+    </nav>
+  </header>
+
+  <div id="token-warning" class="banner" hidden>
+    This page needs the link that <code>prscreen gui</code> printed in your terminal (it contains a
+    one-time token). Close this tab and open that link.
+  </div>
+
+  <main>
+    <section id="tab-scan" class="panel" role="tabpanel">
+      <div class="input-card">
+        <div class="row between">
+          <div class="segmented" role="radiogroup" aria-label="Input">
+            <button class="seg active" data-mode="diff" role="radio" aria-checked="true">Paste a diff</button>
+            <button class="seg" data-mode="git" role="radio" aria-checked="false">Git repository</button>
+          </div>
+          <label class="inline">Try an example
+            <select id="sample"><option value="">Choose…</option></select>
+          </label>
+        </div>
+
+        <div id="mode-diff">
+          <textarea id="diff" spellcheck="false"
+            placeholder="Paste the output of git diff, or a pull request's .diff file, here…"></textarea>
+        </div>
+
+        <div id="mode-git" hidden>
+          <div class="grid2">
+            <label>Repository folder
+              <input id="repo" type="text" placeholder="D:\projects\my-app" spellcheck="false">
+            </label>
+            <label>Changes to scan
+              <input id="range" type="text" value="main...HEAD" spellcheck="false">
+            </label>
+          </div>
+          <p class="hint">Scans what changed on HEAD since it branched from main, like a pull request. No code is run.</p>
+        </div>
+
+        <div class="row between actions">
+          <label class="inline">Show
+            <select id="min-severity">
+              <option value="low">all findings</option>
+              <option value="medium">medium and high</option>
+              <option value="high">high only</option>
+            </select>
+          </label>
+          <button id="scan" class="primary">Scan</button>
+        </div>
+      </div>
+
+      <div id="error" class="error" role="alert" hidden></div>
+
+      <div id="results" hidden>
+        <div class="summary">
+          <div class="verdict" id="verdict"></div>
+          <div class="chips" id="chips"></div>
+          <button id="copy-md" class="ghost">Copy Markdown report</button>
+        </div>
+        <div id="notes" class="notes"></div>
+        <ol id="findings" class="findings"></ol>
+        <p class="advisory">These are signals for a human reviewer, not verdicts. prscreen never approves, blocks or edits a change.</p>
+      </div>
+    </section>
+
+    <section id="tab-rules" class="panel" role="tabpanel" hidden>
+      <div class="row between">
+        <input id="rule-search" type="search" placeholder="Search rules, e.g. secret, workflow, CFG001">
+        <span id="rule-count" class="muted"></span>
+      </div>
+      <div id="rules"></div>
+    </section>
+
+    <section id="tab-about" class="panel prose" role="tabpanel" hidden>
+      <h2>What prscreen does</h2>
+      <p>When someone proposes a change to a project (a pull request), prscreen reads only the lines
+        that changed and points out anything that looks risky: leaked passwords and keys, code that runs
+        downloaded scripts, weakened security settings, dangerous CI workflow changes, data sent to
+        unknown sites, hidden or invisible characters, suspicious dependencies, and text that tries to
+        trick AI reviewers.</p>
+      <p>Each finding shows the exact line, why it may be risky, and the common harmless reasons for
+        it. A person then decides. prscreen never runs the code it reads and never approves or blocks
+        anything.</p>
+      <h2>How good is it?</h2>
+      <p>On 95 real merged pull requests from projects such as Django, Vite and Express it raised no
+        medium or high finding, so it rarely cries wolf. On 65 labeled examples it caught 95% of what
+        it should. It is a pattern tool, so a carefully written logic change can still get past it; the
+        documentation lists those limits openly.</p>
+      <h2>Severity</h2>
+      <ul>
+        <li><span class="sev high">high</span> very likely to matter: look before merging.</li>
+        <li><span class="sev medium">medium</span> worth a reviewer's attention.</li>
+        <li><span class="sev low">low</span> information, such as "CI config changed" or "new dependency".</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot"><span id="version"></span> · runs only on this computer</footer>
+</body>
+</html>

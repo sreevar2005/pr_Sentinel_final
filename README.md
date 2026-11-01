@@ -73,6 +73,18 @@ a verdict.
 
 Needs Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
+**The easy way:** on Windows, double-click `prscreen-gui.bat`; anywhere else, run
+`uv run prscreen gui`. A page opens in your browser. Paste a diff, or choose a repository and a
+range like `main...HEAD`, then press **Scan**. You get colour-coded findings with the evidence line,
+why it matters and when it's harmless. **Try an example** loads sample risky changes, and the
+**Rules** tab lists every rule.
+
+The page runs only on your computer. It listens on 127.0.0.1, answers only requests carrying a
+one-time token from the link it prints, rejects other host names, and shows pull request text as
+text, never as HTML.
+
+**From the command line:**
+
 ```bash
 uv sync
 uv run pytest
