@@ -1,0 +1,49 @@
+[project]
+name = "prscreen"
+version = "0.1.0"
+description = "Screens pull request diffs for suspicious or risky changes and explains the evidence. Advisory only: never approves, rejects or edits."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+# The core has no runtime dependencies on purpose: a security tool that reads hostile input
+# should not pull a large supply chain into the job that runs it.
+dependencies = []
+
+[project.scripts]
+prscreen = "prscreen.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/prscreen"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "BLE"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+"src/prscreen/gitdiff.py" = ["S603", "S607"]  # fixed argv list, shell=False, validated revision
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["prscreen"]
+mypy_path = "src"
