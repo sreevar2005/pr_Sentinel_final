@@ -7,8 +7,8 @@ so they are written for you to run. Nothing here is automated on your behalf.
 ## 1. prscreen itself
 
 prscreen is published at
-[github.com/sreevar2005/pr_Sentinel_final](https://github.com/sreevar2005/pr_Sentinel_final), and
-other repositories use it as `sreevar2005/pr_Sentinel_final@<commit-sha>`. To publish a fork or a
+[github.com/sreevar2005/prscreen](https://github.com/sreevar2005/prscreen), and
+other repositories use it as `sreevar2005/prscreen@<commit-sha>`. To publish a fork or a
 copy elsewhere:
 
 ```bash
@@ -33,7 +33,7 @@ Rebuild it so the demo follows prscreen's own advice:
 
 ```bash
 rm -rf "../prscreen-demo"
-uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/pr_Sentinel_final@<commit-sha>
+uv run python scripts/demo.py build ../prscreen-demo --action sreevar2005/prscreen@<commit-sha>
 ```
 
 ## 3. Publish the demo

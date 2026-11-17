@@ -33,7 +33,7 @@ from prscreen.gitdiff import git_diff  # noqa: E402
 from prscreen.gui.samples import SAMPLES  # noqa: E402
 from prscreen.models import Severity  # noqa: E402
 
-DEFAULT_ACTION = "sreevar2005/pr_Sentinel_final@4a78297e10a9178673bbc63c8b6352006fbb5099"
+DEFAULT_ACTION = "sreevar2005/prscreen@4a78297e10a9178673bbc63c8b6352006fbb5099"
 CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1"
 RLO, LRI, PDI = chr(0x202E), chr(0x2066), chr(0x2069)
 FAKE_KEY = "tc-" + "7Qm2xZ9p" + "Lk4vW8rN" + "3sJd"
@@ -334,7 +334,7 @@ def readme() -> str:
     return (
         "# prscreen-incidents\n\n"
         "A small web shop where every `incident/...` branch recreates one **real, documented** security\n"
-        "incident, for trying [prscreen](https://github.com/sreevar2005/pr_Sentinel_final). Each branch is one\n"
+        "incident, for trying [prscreen](https://github.com/sreevar2005/prscreen). Each branch is one\n"
         "commit on top of `main`; its commit message explains the incident and links the sources.\n\n"
         "**Nothing here is meant to be run.** Every payload is an inert stand-in, credentials are fake,\n"
         "and the code recreates only each incident's key mechanism, not the attackers' code.\n\n"

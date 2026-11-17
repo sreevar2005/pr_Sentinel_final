@@ -59,5 +59,5 @@ def test_branch_listing_puts_local_branches_first(repo):
 
 def test_the_repo_workflow_pins_prscreen_to_a_commit():
     workflow = incidents.base_files(incidents.DEFAULT_ACTION)[".github/workflows/prscreen.yml"]
-    assert "uses: sreevar2005/pr_Sentinel_final@" in workflow
+    assert "uses: sreevar2005/prscreen@" in workflow
     assert len(incidents.DEFAULT_ACTION.split("@")[1]) == 40
